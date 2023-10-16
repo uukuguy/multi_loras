@@ -1,8 +1,37 @@
 # Multi-LoRAs
 
-- Load multiple LoRA modules simultaneously and automatically switch the appropriate combination of LoRA modules to generate the best answer based on user queries.
+Multi-LoRAs is a LLM toolkit that can simultaneously load multiple LoRA modules and automatically switch to the appropriate combination of LoRA modules based on user queries to generate the best answer. It includes tools such as extracting LoRA modules from efficiently parameters fine-tuning models, merging base models with LoRA models, and routing multiple LoRA models.
+
+Tools:
+
 - Extract the LoRA module from a model that has undergone efficient parameter fine-tuning.
 - Tool for merging LoRA module into the base model.
+- Multi LoRAs router (Under development)
+
+## Quick Start
+
+Extract LoRA model from a model.
+
+```bash
+python -m multi_loras \
+    extract_lora \
+    --base_model_name_or_path ${BASE_MODEL_PATH} \
+    --tuned_model_name_or_path ${TUNED_MODEL_PATH} \
+    --save_path ${LORA_SAVE_PATH} \
+    --bf16 \
+    --bits 4 \
+    --lora_r 64
+```
+
+Merge the extracted LoRA model with the base model.
+
+```bash
+python -m multi_loras \
+    merge_lora \
+    --base_model_name_or_path ${BASE_MODEL_PATH} \
+    --lora_model_path ${LORA_SAVE_PATH} \
+    --merged_model_name_or_path ${TASK_MODEL_PATH}
+```
 
 ## References
 
