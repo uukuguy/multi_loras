@@ -8,10 +8,20 @@ Tools:
 - Tool for merging LoRA module into the base model.
 - Multi LoRAs router (Under development)
 
+## Experiments
+
+### Mistral-7B-OpenOrca
+
+- Extract lora model [Mistral-7B-OpenOrca-lora](https://huggingface.co/uukuguy/Mistral-7B-OpenOrca-lora) from [Mistral-7B-OpenOrca](https://huggingface.co/Open-Orca/Mistral-7B-OpenOrca);
+
+- Merge the base model [Mistral-7B-v0.1](https://huggingface.co/mistralai/Mistral-7B-v0.1) with lora model to [Mistral-7B-OpenOrca-lora-merged](https://huggingface.co/uukuguy/Mistral-7B-OpenOrca-lora-merged)
+
+- LLM Evaluation ...
+
 ## Install
 
 ```bash
-pip install multi_loras
+pip install multi-loras
 # - or -
 pip install git+https://github.com/uukuguy/multi_loras.git
 ```
@@ -45,7 +55,7 @@ python -m multi_loras \
 
 - Gradio GUI for Kohya’s Stable Diffusion Trainer
 
-[](https://github.com/bmaltais/kohya_ss)
+[bmaltais/kohya_ss](https://github.com/bmaltais/kohya_ss)
 > networks/extract_lora_from_models.py
 > networks/merge_lora.py
 > networks/resize_lora.py
@@ -55,8 +65,8 @@ python -m multi_loras \
 
 - LoRA for Text-to-Image
 
-[](https://github.com/cloneofsimo/lora)
+[cloneofsimo/lora](https://github.com/cloneofsimo/lora)
 > lora_diffusion/cli_svd.py
 
 - Microsoft LoRA
-[](https://github.com/microsoft/LoRA)
+[LoRA](https://github.com/microsoft/LoRA)
