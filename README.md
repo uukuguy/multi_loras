@@ -8,6 +8,14 @@ Tools:
 - Tool for merging LoRA module into the base model.
 - Multi LoRAs router (Under development)
 
+## Install
+
+```bash
+pip install multi_loras
+# - or -
+pip install git+https://github.com/uukuguy/multi_loras.git
+```
+
 ## Quick Start
 
 Extract LoRA model from a model.
