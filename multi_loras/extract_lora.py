@@ -118,7 +118,7 @@ def do_extract_lora(args):
     num_tuned_lora_modules = get_lora_modules_count(tuned_model, bits)
     assert num_base_lora_modules == num_tuned_lora_modules, f"{num_base_lora_modules=}, {num_tuned_lora_modules=}"
     pbar = tqdm(zip(_iter_lora(base_model, bits), _iter_lora(tuned_model, bits)), 
-                total=num_base_lora_modules, ncols=120, desc="Run SVD")
+                total=num_base_lora_modules, ncols=120, desc="SVD")
 
     rank = args.lora_r
     clamp_quantile = args.clamp_quantile

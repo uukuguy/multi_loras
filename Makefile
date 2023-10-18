@@ -1,6 +1,7 @@
 MODELS_ROOT_DIR=/opt/local/llm_models/huggingface.co
 
 BASE_MODEL_PATH=${MODELS_ROOT_DIR}/mistralai/Mistral-7B-v0.1
+# LORA_R=64
 # # ---------- Open-Orca/Mistral-7B-SlimOrca ----------
 # TUNED_MODEL_PATH=${MODELS_ROOT_DIR}/Open-Orca/Mistral-7B-SlimOrca
 
@@ -10,11 +11,17 @@ BASE_MODEL_PATH=${MODELS_ROOT_DIR}/mistralai/Mistral-7B-v0.1
 # # ---------- uukuguy/speechless-mistral-dolphin-orca-platypus-samantha-7b ----------
 # TUNED_MODEL_PATH=${MODELS_ROOT_DIR}/speechlessai/speechless-mistral-dolphin-orca-platypus-samantha-7b
 
-# ---------- uukuguy/speechless-code-mistral-7b-v1.0 ----------
-TUNED_MODEL_PATH=${MODELS_ROOT_DIR}/speechlessai/speechless-code-mistral-7b-v1.0
+# # ---------- uukuguy/speechless-code-mistral-7b-v1.0 ----------
+# TUNED_MODEL_PATH=${MODELS_ROOT_DIR}/speechlessai/speechless-code-mistral-7b-v1.0
 
-LORA_SAVE_PATH=${MODELS_ROOT_DIR}/$(shell basename ${TUNED_MODEL_PATH})-lora
-TASK_MODEL_PATH=${MODELS_ROOT_DIR}/$(shell basename ${TUNED_MODEL_PATH})-lora-merged
+# LORA_SAVE_PATH=${MODELS_ROOT_DIR}/$(shell basename ${TUNED_MODEL_PATH})-lora
+# TASK_MODEL_PATH=${MODELS_ROOT_DIR}/$(shell basename ${TUNED_MODEL_PATH})-lora-merged
+
+# ---------- Open-Orca/Mistral-7B-OpenOrca ----------
+TUNED_MODEL_PATH=${MODELS_ROOT_DIR}/Open-Orca/Mistral-7B-OpenOrca
+LORA_R=16
+LORA_SAVE_PATH=${MODELS_ROOT_DIR}/$(shell basename ${TUNED_MODEL_PATH})-r${LORA_R}-lora
+TASK_MODEL_PATH=${MODELS_ROOT_DIR}/$(shell basename ${TUNED_MODEL_PATH})-r${LORA_R}-lora-merged
 
 help:
 	@echo "Usage: make [extract_lora | merge_lora]" 
@@ -28,7 +35,7 @@ extract_lora:
 		--save_path ${LORA_SAVE_PATH} \
 		--bf16 \
 		--bits 4 \
-		--lora_r 64
+		--lora_r ${LORA_R}
 
 merge_lora:
 	PYTHONPATH=${PWD} \
