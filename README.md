@@ -23,16 +23,17 @@ Tools:
 | | ARC_acc_norm (25-shot) | HellaSwag_acc_norm (10-shot) | MMLU_acc (5-shot) | TruthfulQA_mc2 (0-shot) | GSM8K_acc (8-shot) | Open LLM Score |
 | ------ | ------ | ------ | ------ | ------ | ------ | ------ |
 | Mistral-7B-OpenOrca | **71** | 83 | 61.42 | 45 | 40 | 65.11 |
-| r=256 | 68 | **84** |  |  |  |  |
-| **r=64** | 67 | 84 | **64.26** | **47.32** | **41** | **65.65** |
+| r=256 | 68 | 84 | 64.28 | 46.953 | **41** |  65.81 |
+| **r=128** | 68 | **84** | **64.368** | 47.239 | **41** |  **65.90** |
+| r=64 | 67 | 84 | 64.26 | **47.32** | **41** | 65.65 |
 | *r=16* | *65* | *83* | *62.84* | *46.95* | *38* | *64.45* |
 
 #### Open LLM Leaderboard
+
 | | ARC_acc_norm (25-shot) | HellaSwag_acc_norm (10-shot) | MMLU_acc (5-shot) | TruthfulQA_mc2 (0-shot) | Open LLM Score |
 | ------ | ------ | ------ | ------ | ------ | ------ |
 | Mistral-7B-SlimOrca | 62.54 | 83.86 | **62.77** | **54.23** |  **65.85** |
 | Mistral-7B-OpenOrca | **64.08** | **83.99** | 62.24 | 53.05 |  65.84 |
-
 
 ## Install
 
@@ -54,7 +55,7 @@ python -m multi_loras \
     --save_path ${LORA_SAVE_PATH} \
     --bf16 \
     --bits 4 \
-    --lora_r 64
+    --lora_r 128
 ```
 
 Merge the extracted LoRA model with the base model.
