@@ -4,8 +4,8 @@ import numpy as np
 import time
 from typing import List
 from ..io_struct import Batch, Req
+from .req_queue import ReqQueue
 from slora.utils.infer_utils import  calculate_time
-from slora.server.router.req_queue import ReqQueue
 from slora.utils.metric import attainment_func
 
 

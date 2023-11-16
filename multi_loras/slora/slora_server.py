@@ -1,6 +1,11 @@
 #!/usr/bin/env python
+
+import os, sys, time
+from packaging import version
+from pydantic import BaseModel, Field
+import uuid
 from transformers import (AutoTokenizer, PreTrainedTokenizer, PreTrainedTokenizerFast)
-from typing import Dict, List, Optional, Tuple, Union
+from typing import Dict, List, Optional, Tuple, Union, Literal
 import multiprocessing as mp
 import torch
 import socket
@@ -10,10 +15,23 @@ import asyncio
 import uvloop
 import traceback
 
+try:
+    import fastchat
+    from fastchat.conversation import Conversation, SeparatorStyle
+    from fastchat.model.model_adapter import get_conversation_template
+
+    _fastchat_available = True
+except ImportError:
+    _fastchat_available = False
+
 asyncio.set_event_loop_policy(uvloop.EventLoopPolicy())
 
 from fastapi import BackgroundTasks, FastAPI, Request
 from fastapi.responses import Response, StreamingResponse, JSONResponse
+
+script_path = os.path.dirname(os.path.realpath(__file__))
+if script_path not in sys.path:
+    sys.path.insert(0, script_path)
 
 GB = 1024 ** 3
 MB = 1024 ** 2
@@ -28,256 +46,324 @@ isFirst = True
 def create_error_response(status_code: HTTPStatus, message: str) -> JSONResponse:
     return JSONResponse({"message": message}, status_code=status_code.value)
 
+@app.get("/healthz")
+@app.get("/health")
+def healthcheck():
+    return "OK"
+
+@app.post("/generate")
+async def generate(request: Request) -> Response:
+    global isFirst
+    if isFirst:
+        loop = asyncio.get_event_loop()
+        loop.create_task(httpserver_manager.handle_loop())
+        isFirst = False
+
+    request_dict = await request.json()
+    adapter_dir = request_dict["lora_dir"] if "lora_dir" in request_dict else None
+    prompt = request_dict.pop("inputs")
+    sample_params_dict = request_dict["parameters"]
+    return_details = sample_params_dict.pop("return_details", False)
+    sampling_params = SamplingParams(**sample_params_dict)
+    sampling_params.verify()
+
+    request_id = uuid.uuid4().hex
+    results_generator = httpserver_manager.generate(adapter_dir, prompt, sampling_params, request_id)
+
+    # Non-streaming case
+    final_output = []
+    count_output_tokens = 0
+    tokens = []
+    async for request_output, metadata, finished in results_generator:
+        count_output_tokens += 1
+        if finished == -1:
+            return Response(status_code=499)
+        if await request.is_disconnected():
+            # Abort the request if the client disconnects.
+            await httpserver_manager.abort(request_id)
+            return Response(status_code=499)
+        final_output.append(request_output)
+        if return_details:
+            metadata["text"] = request_output
+            tokens.append(metadata)
+
+    assert final_output is not None
+    ret = {
+        "generated_text": ["".join(final_output)],
+        "count_output_tokens": count_output_tokens,
+    }
+    if return_details:
+        ret["tokens"] = tokens
+    return Response(content=json.dumps(ret, ensure_ascii=False).encode("utf-8"))
 
 
-class SamplingParams:
+@app.post("/generate_stream")
+async def generate_stream(request: Request) -> Response:
+    global isFirst
+    if isFirst:
+        loop = asyncio.get_event_loop()
+        loop.create_task(httpserver_manager.handle_loop())
+        isFirst = False
 
-    def __init__(
-        self,
-        do_sample: bool = False,
-        presence_penalty: float = 0.0,
-        frequency_penalty: float = 0.0,
-        temperature: float = 1.0,
-        top_p: float = 1.0,
-        top_k: int = -1,  # -1 is for all
-        ignore_eos: bool = False,
-        max_new_tokens: int = 16,
-        stop_sequences: Optional[Union[str, List[str]]] = None  # 停止句子条件
-    ) -> None:
-        self.do_sample = do_sample
-        self.presence_penalty = presence_penalty
-        self.frequency_penalty = frequency_penalty
-        self.temperature = temperature
-        self.top_p = top_p
-        self.top_k = top_k
-        self.ignore_eos = ignore_eos
-        self.max_new_tokens = max_new_tokens
-        self.stop_sequences = stop_sequences
-        if self.do_sample == False:
-            self.temperature = 1.0
-            self.top_p = 1.0
-            self.top_k = 1
-        # temperature is too slow, change to greedy search
-        if self.temperature >= 0.0 and self.temperature < 1e-5:
-            self.temperature = 1.0
-            self.top_k = 1
-        return
+    request_dict = await request.json()
+    adapter_dir = request_dict["lora_dir"] if "lora_dir" in request_dict else None
+    prompt = request_dict.pop("inputs")
+    sample_params_dict = request_dict["parameters"]
+    return_details = sample_params_dict.pop("return_details", False)
+    sampling_params = SamplingParams(**sample_params_dict)
+    sampling_params.verify()
 
-    def verify(self):
-        if self.presence_penalty < 0.0:
-            raise ValueError(f"presence_penalty must >= 0.0, got {self.presence_penalty}")
-        if self.frequency_penalty < 0.0:
-            raise ValueError(f"frequency_penalty must >= 0.0, got {self.frequency_penalty}")
-        if self.temperature <= 0.0:
-            raise ValueError(f"temperature must > 0.0, got {self.temperature}")
-        if self.top_p <= 0.0 or self.top_p > 1.0:
-            raise ValueError(f"top_p must in (0.0, 1.0], got {self.top_p}")
-        if self.top_k < -1 or self.top_k == 0:
-            raise ValueError(f"top_k must be -1 (disable), or at least 1, got {self.top_k}.")
-        if self.max_new_tokens < 1:
-            raise ValueError(f"max_new_tokens must be at least 1 , got {self.max_new_tokens}.")
-        return
+    request_id = uuid.uuid4().hex
+    results_generator = httpserver_manager.generate(adapter_dir, prompt, sampling_params, request_id)
 
-    def stop_sentences_to_token_ids(self, tokenizer):
-        if self.stop_sequences is None:
-            self.stop_sequences = []
-        else:
-            if isinstance(self.stop_sequences, str):
-                self.stop_sequences = [self.stop_sequences]
-            new_stop_sequences = []
-            for stop_str in self.stop_sequences:
-                stop_str_ids = tokenizer.encode(stop_str)
-                # remove bos_token_id
-                if stop_str_ids is not None and len(stop_str_ids) >= 1:
-                    stop_str_ids = stop_str_ids[1:]
-                if len(stop_str_ids) > 0:
-                    new_stop_sequences.append(stop_str_ids)
-            self.stop_sequences = new_stop_sequences
-        return
+    # Streaming case
+    async def stream_results() -> AsyncGenerator[bytes, None]:
+        async for request_output, metadata, finished in results_generator:
+            ret = {
+                "token": {
+                    "id": metadata.get("id", None),
+                    "text": request_output,
+                    "logprob": metadata.get("logprob", None),
+                    "special": False
+                },
+                "generated_text": None,
+                "finished": finished,
+                "details": None
+            }
 
-    def to_dict(self):
-        ret = {}
-        ret["do_sample"] = self.do_sample
-        ret["presence_penalty"] = self.presence_penalty
-        ret["frequency_penalty"] = self.frequency_penalty
-        ret["temperature"] = self.temperature
-        ret["top_p"] = self.top_p
-        ret["top_k"] = self.top_k
-        # if self.ignore_eos is not None:
-        #     ret["ignore_eos"] = self.ignore_eos
-        # if self.max_tokens is not None:
-        #     ret["max_tokens"] = self.max_tokens
-        return ret
+            yield ("data:" + json.dumps(ret, ensure_ascii=False) + f"\n\n").encode(
+                "utf-8"
+            )
+
+    async def abort_request() -> None:
+        await httpserver_manager.abort(request_id)
+
+    background_tasks = BackgroundTasks()
+    # Abort the request if the client disconnects.
+    background_tasks.add_task(abort_request)
+
+    return StreamingResponse(
+        stream_results(), media_type="text/event-stream", background=background_tasks
+    )
+
+class ChatCompletionRequest(BaseModel):
+    # The openai api native parameters
+    model: str
+    messages: List[Dict[str, str]]
+    function_call: Optional[str] = 'none'
+    temperature: Optional[float] = 1
+    top_p: Optional[float] = 1.0
+    n: Optional[int] = 1
+    stream: Optional[bool] = False
+    stop: Optional[Union[str, List[str]]] = None
+    max_tokens: Optional[int] = 16
+    presence_penalty: Optional[float] = 0.0
+    frequency_penalty: Optional[float] = 0.0
+    logit_bias: Optional[Dict[str, float]] = None
+    user: Optional[str] = None
+
+    # Additional parameters supported by S-LoRA
+    do_sample: Optional[bool] = False
+    top_k: Optional[int] = -1
+    ignore_eos: Optional[bool] = False
 
 
-class Req:
+class UsageInfo(BaseModel):
+    prompt_tokens: int = 0
+    completion_tokens: Optional[int] = 0
+    total_tokens: int = 0
 
-    def __init__(self, adapter_dir, request_id, prompt_ids, sample_params: SamplingParams):
-        self.adapter_dir = adapter_dir
-        self.request_id = request_id
-        self.prompt_ids = prompt_ids
-        self.input_len = len(prompt_ids)
-        self.max_output_len = sample_params.max_new_tokens
-        self.sample_params = sample_params
-        self.output_ids = []
-        self.output_metadata_list = []
-        self.has_generate_finished = False
-        self.aborted = False
 
-    def to_rpc_obj(self):
-        return {
-            "adapter_dir": self.adapter_dir,
-            "request_id": self.request_id,
-            "input_id": self.prompt_ids,
-            "output_len": self.max_output_len,
-            "sampling_param": self.sample_params.to_dict()
-        }
+class ChatMessage(BaseModel):
+    role: str
+    content: str
 
-    def to_req_detokenization_state(self):
-        out = ReqDetokenizationState(
-            self.request_id, self.prompt_ids, self.max_output_len, self.sample_params.ignore_eos
+
+class ChatCompletionResponseChoice(BaseModel):
+    index: int
+    message: ChatMessage
+    finish_reason: Optional[Literal["stop", "length", "function_call"]] = None
+
+
+class ChatCompletionResponse(BaseModel):
+    id: str = Field(default_factory=lambda: f"chatcmpl-{uuid.uuid4().hex}")
+    object: str = "chat.completion"
+    created: int = Field(default_factory=lambda: int(time.time()))
+    model: str
+    choices: List[ChatCompletionResponseChoice]
+    usage: UsageInfo
+
+
+class DeltaMessage(BaseModel):
+    role: Optional[str] = None
+    content: Optional[str] = None
+
+
+class ChatCompletionStreamResponseChoice(BaseModel):
+    index: int
+    delta: DeltaMessage
+    finish_reason: Optional[Literal["stop", "length"]] = None
+
+
+class ChatCompletionStreamResponse(BaseModel):
+    id: str = Field(default_factory=lambda: f"chatcmpl-{uuid.uuid4().hex}")
+    object: str = "chat.completion.chunk"
+    created: int = Field(default_factory=lambda: int(time.time()))
+    model: str
+    choices: List[ChatCompletionStreamResponseChoice]
+
+async def build_prompt(request) -> str:
+    if not _fastchat_available:
+        raise ModuleNotFoundError(
+            "fastchat is not installed. Please install fastchat to use "
+            "the chat completion and conversation APIs: `$ pip install 'fschat[model_worker,webui]'`"
         )
-        if self.output_metadata_list:
-            out.gen_metadata.update(self.output_metadata_list[-1])
-        return out
+    if version.parse(fastchat.__version__) < version.parse("0.2.23"):
+        raise ImportError(
+            f"fastchat version is low. Current version: {fastchat.__version__} "
+            "Please upgrade fastchat to use: `$ pip install 'fschat[model_worker,webui]'`")
 
-    def stop_sequences_matched(self):
-        for stop_token_ids in self.sample_params.stop_sequences:
-            stop_len = len(stop_token_ids)
-            if stop_len > 0:
-                if len(self.output_ids) >= stop_len:
-                    if all(self.output_ids[-(stop_len - i)] == stop_token_ids[i] for i in range(stop_len)):
-                        return True
-        return False
+    conv = get_conversation_template(request.model)
+    conv = Conversation(
+        name=conv.name,
+        system_template=conv.system_template,
+        system_message=conv.system_message,
+        roles=conv.roles,
+        messages=list(conv.messages),  # prevent in-place modification
+        offset=conv.offset,
+        sep_style=SeparatorStyle(conv.sep_style),
+        sep=conv.sep,
+        sep2=conv.sep2,
+        stop_str=conv.stop_str,
+        stop_token_ids=conv.stop_token_ids,
+    )
 
-    def __repr__(self):
-        return (
-            f"request_id(n={self.request_id}, "
-            f"adapter_dir={self.adapter_dir}, "
-            f"prompt_ids={self.prompt_ids}, "
+    if isinstance(request.messages, str):
+        prompt = request.messages
+    else:
+        for message in request.messages:
+            msg_role = message["role"]
+            if msg_role == "system":
+                conv.system_message = message["content"]
+            elif msg_role == "user":
+                conv.append_message(conv.roles[0], message["content"])
+            elif msg_role == "assistant":
+                conv.append_message(conv.roles[1], message["content"])
+            else:
+                raise ValueError(f"Unknown role: {msg_role}")
+        # Add a blank message for the assistant. Meaning it's the assistant's turn to talk.
+        conv.append_message(conv.roles[1], None)
+        prompt = conv.get_prompt()
+
+    return prompt
+
+
+@app.post("/v1/chat/completions", response_model=ChatCompletionResponse)
+async def chat_completions(
+    request: ChatCompletionRequest, raw_request: Request
+) -> Response:
+    global isFirst
+    if isFirst:
+        loop = asyncio.get_event_loop()
+        loop.create_task(httpserver_manager.handle_loop())
+        isFirst = False
+
+    if request.logit_bias is not None:
+        return create_error_response(
+            HTTPStatus.BAD_REQUEST,
+            "The logit_bias parameter is not currently supported",
         )
 
+    if request.n > 1:
+        return create_error_response(
+            HTTPStatus.BAD_REQUEST, "The n parameter currently only supports 1"
+        )
 
-class ReqDetokenizationState:
+    if request.function_call != "none":
+        return create_error_response(
+            HTTPStatus.BAD_REQUEST, "The function call feature is not supported"
+        )
 
-    def __init__(
-        self,
-        request_id: str,
-        prompt_ids: List[int],
-        max_output_len: int,
-        ignore_eos: bool,
-    ) -> None:
-        self.request_id = request_id
-        self.prompt_ids = prompt_ids
-        self.output_ids = []
-        self.output_tokens = []
-        self.output_str = ""
-        self.sub_texts = []
-        self.current_sub_text = []
-        self.max_output_len = max_output_len
-        self.ignore_eos = ignore_eos
-        self.gen_metadata = {}
+    created_time = int(time.time())
+    prompt = await build_prompt(request)
+    sampling_params = SamplingParams(
+        do_sample=request.do_sample,
+        presence_penalty=request.presence_penalty,
+        frequency_penalty=request.frequency_penalty,
+        temperature=request.temperature,
+        top_p=request.top_p,
+        top_k=request.top_k,
+        ignore_eos=request.ignore_eos,
+        max_new_tokens=request.max_tokens,
+        stop_sequences=request.stop
+    )
+    sampling_params.verify()
 
+    request_id = f"chatcmpl-{uuid.uuid4().hex}"
+    results_generator = httpserver_manager.generate(prompt, sampling_params, request_id)
 
-class Batch:
+    # Non-streaming case
+    if not request.stream:
+        final_output = []
+        prompt_tokens = -1
+        completion_tokens = 0
+        async for request_output, metadata in results_generator:
+            if await raw_request.is_disconnected():
+                # Abort the request if the client disconnects.
+                await httpserver_manager.abort(request_id)
+                return Response(status_code=499)
+            completion_tokens += 1
+            if prompt_tokens == -1:
+                prompt_tokens = metadata["prompt_tokens"]
+            final_output.append(request_output)
 
-    def __init__(self, batch_id, reqs: List[Req]):
-        self.batch_id = batch_id
-        self.reqs = reqs
-        self.id_to_reqs = {req.request_id: req
-                           for req in reqs}
+        usage = UsageInfo(
+            prompt_tokens=prompt_tokens,
+            completion_tokens=completion_tokens,
+            total_tokens=prompt_tokens + completion_tokens
+        )
+        chat_message = ChatMessage(role="assistant", content="".join(final_output))
+        choice = ChatCompletionResponseChoice(index=0, message=chat_message)
+        resp = ChatCompletionResponse(
+            id=request_id,
+            created=created_time,
+            model=request.model,
+            choices=[choice],
+            usage=usage
+        )
+        return resp
 
-        self.adapter_dirs = set()
-        for req in reqs:
-            self.adapter_dirs.add(req.adapter_dir)
+    # Streaming case
+    async def stream_results() -> AsyncGenerator[bytes, None]:
+        async for request_output, metadata in results_generator:
+            delta_message = DeltaMessage(role="assistant", content=request_output)
 
-    def input_tokens(self):
-        batch_input_tokens = 0
-        for req in self.reqs:
-            batch_input_tokens += req.input_len
-        return batch_input_tokens
+            stream_choice = ChatCompletionStreamResponseChoice(
+                index=0, delta=delta_message
+            )
 
-    def calcu_max_tokens(self):
-        tokens = 0
-        for req in self.reqs:
-            tokens += req.input_len + req.max_output_len
-        return tokens
+            stream_resp = ChatCompletionStreamResponse(
+                id=request_id,
+                created=created_time,
+                model=request.model,
+                choices=[stream_choice],
+            )
+            yield ("data: " + stream_resp.json(ensure_ascii=False) + f"\n\n").encode("utf-8")
 
-    def calcu_used_tokens(self):
-        tokens = 0
-        for req in self.reqs:
-            tokens += req.input_len + len(req.output_ids)
-        return tokens
+    async def abort_request() -> None:
+        await httpserver_manager.abort(request_id)
 
-    def mark_finished_req(self, eos_id):
-        has_new_finish = False
-        for req in self.reqs:
-            if req.stop_sequences_matched():
-                req.has_generate_finished = True
-                has_new_finish = True
-            if req.output_ids[-1] == eos_id and req.sample_params.ignore_eos == False:
-                req.has_generate_finished = True
-                has_new_finish = True
-            if len(req.output_ids) >= req.max_output_len or req.aborted:
-                req.has_generate_finished = True
-                has_new_finish = True
-        return has_new_finish
+    background_tasks = BackgroundTasks()
+    # Abort the request if the client disconnects.
+    background_tasks.add_task(abort_request)
 
-    def filter_finished(self):
-        unfinished_req = []
-        for req in self.reqs:
-            if not req.has_generate_finished:
-                unfinished_req.append(req)
-        self.reqs = unfinished_req
-        self.id_to_reqs = {req.request_id: req
-                           for req in self.reqs}
-
-        self.adapter_dirs = set()
-        for req in self.reqs:
-            self.adapter_dirs.add(req.adapter_dir)
-
-    def is_clear(self):
-        return len(self.reqs) == 0
-
-    def merge(self, mini_batch):
-        for _req in mini_batch.reqs:
-            self.reqs.append(_req)
-            self.adapter_dirs.add(_req.adapter_dir)
-        self.id_to_reqs = {req.request_id: req
-                           for req in self.reqs}
-        return
-
-    def __repr__(self):
-        return (f"batch_id={self.batch_id}, "
-                # f"reqs={self.reqs}, "
-                f"req_ids={self.id_to_reqs.keys()}")
+    return StreamingResponse(
+        stream_results(), media_type="text/event-stream", background=background_tasks
+    )
 
 
-class BatchTokenIdOut:
-
-    def __init__(self):
-        # [req_id, new_token_id, gen_metadata, finished_state, abort_state]
-        self.reqs_infs: List[Tuple[str, int, Dict, bool, bool]] = []
-
-
-class BatchStrOut:
-
-    def __init__(self):
-        # [req_id, token_str, gen_metadata, finished_state, abort_state]
-        self.reqs_infs: List[Tuple[str, str, Dict, bool, bool]] = []
-
-
-class AbortReq:
-
-    def __init__(self, req_id):
-        self.req_id = req_id
-
-
-class BatchAbortReq:
-
-    def __init__(self, req_ids):
-        self.reqs: List[str] = req_ids
-
+from sampling_params import SamplingParams
+from io_struct import BatchStrOut, AbortReq, BatchAbortReq
 
 class HttpServerManager:
 

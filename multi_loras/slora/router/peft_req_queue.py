@@ -3,8 +3,8 @@ import asyncio
 import numpy as np
 from typing import List
 from ..io_struct import Batch, Req
+from .req_queue import ReqQueue
 from slora.utils.infer_utils import  calculate_time
-from slora.server.router.req_queue import ReqQueue
 
 
 class PEFTReqQueue(ReqQueue):

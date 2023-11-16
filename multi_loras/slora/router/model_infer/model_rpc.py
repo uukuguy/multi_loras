@@ -12,7 +12,11 @@ from typing import Dict, List, Tuple
 from rpyc.utils.classic import obtain
 
 from transformers.configuration_utils import PretrainedConfig
-from slora.server.router.model_infer.infer_batch import InferBatch
+
+from .post_process import sample
+from .infer_batch import InferBatch
+from .infer_adapter import InferAdapter
+from .naive_infer_adapter import NaiveInferAdapter
 
 from slora.common.configs.config import setting
 from slora.models.llama.model import LlamaTpPartModel
@@ -21,12 +25,9 @@ from slora.models.peft.lora_adapter import LoraTpPartAdapter
 from slora.models.peft.lora_unordered_batch_infer import LoraUnorderedBatchInfer
 from slora.models.peft.lora_single_batch_infer import LoraPEFTBatchInfer
 from slora.models.bmm.lora_bmm_infer import LoraBmmInfer
-from slora.server.router.model_infer.infer_adapter import InferAdapter
-from slora.server.router.model_infer.naive_infer_adapter import NaiveInferAdapter
 from slora.utils.infer_utils import set_random_seed
 from slora.utils.infer_utils import calculate_time, mark_start, mark_end
 from slora.utils.model_utils import get_model_config
-from .post_process import sample
 
 
 class ModelRpcServer(rpyc.Service):
