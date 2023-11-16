@@ -15,6 +15,7 @@ def get_args():
     parser.add_argument("--base_model_name_or_path", type=str, required=True, help="Path to the base model.")
     parser.add_argument("--tuned_model_name_or_path", type=str, help="Path to the tuned model.")
     parser.add_argument("--save_path", type=str, default="svd_distill_model", help="Path to save the distilled model.")
+    parser.add_argument("--device_map", type=str, default="cpu", help="Path to device map.")
     parser.add_argument("--bits", type=int, default=4, help="Bits to use for quantization.")
     parser.add_argument("--lora_r", type=int, default=64, help="Rank for LORA.")
     parser.add_argument("--lora_alpha", type=float, default=16, help="Alpha for LORA.")
