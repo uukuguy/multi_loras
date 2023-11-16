@@ -9,8 +9,8 @@ from ..triton_kernel.context_flashattention_nopad import context_attention_fwd
 from ..triton_kernel.token_attention_nopad_att1 import token_att_fwd
 from ..triton_kernel.token_attention_nopad_softmax import token_softmax_fwd
 from ..triton_kernel.token_attention_nopad_reduceV import token_att_fwd2
-from ..llama.infer_struct import LlamaInferStateInfo
-from ..llama.layer_infer.transformer_layer_infer import LlamaTransformerLayerInfer
+from ...llama.infer_struct import LlamaInferStateInfo
+from ...llama.layer_infer.transformer_layer_infer import LlamaTransformerLayerInfer
 
 class Llama2TransformerLayerInfer(LlamaTransformerLayerInfer):
 

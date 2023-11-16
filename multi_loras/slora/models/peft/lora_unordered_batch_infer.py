@@ -3,9 +3,9 @@ import torch
 import torch.nn as nn
 from typing import final
 
+from .triton_kernel.lora.lora_prefill import lora_get_qkvo_fwd_shrink, lora_get_qkvo_fwd_expand
 from ..llama.triton_kernel.context_flashattention_nopad import context_attention_fwd
 from ..llama.triton_kernel.rotary_emb import rotary_emb_fwd
-from ..peft.triton_kernel.lora.lora_prefill import lora_get_qkvo_fwd_shrink, lora_get_qkvo_fwd_expand
 from ...common.infer_utils import init_bloc
 from ...router.model_infer.naive_infer_adapter import NaiveInferAdapter
 from ...utils.infer_utils import mark_cost_time

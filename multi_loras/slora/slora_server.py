@@ -25,13 +25,16 @@ except ImportError:
     _fastchat_available = False
 
 asyncio.set_event_loop_policy(uvloop.EventLoopPolicy())
+import uvicorn
 
+from http import HTTPStatus
 from fastapi import BackgroundTasks, FastAPI, Request
 from fastapi.responses import Response, StreamingResponse, JSONResponse
 
 script_path = os.path.dirname(os.path.realpath(__file__))
-if script_path not in sys.path:
-    sys.path.insert(0, script_path)
+parent_path = os.path.dirname(script_path)
+if parent_path not in sys.path:
+    sys.path.insert(0, parent_path)
 
 GB = 1024 ** 3
 MB = 1024 ** 2
@@ -362,8 +365,8 @@ async def chat_completions(
     )
 
 
-from sampling_params import SamplingParams
-from io_struct import BatchStrOut, AbortReq, BatchAbortReq
+from slora.sampling_params import SamplingParams
+from slora.io_struct import BatchTokenIdOut, ReqDetokenizationState, BatchStrOut, AbortReq, BatchAbortReq
 
 class HttpServerManager:
 
@@ -603,7 +606,7 @@ class DeTokenizationManager:
                 pass
 
 
-def start_detokenization_process(args, detokenization_port, httpserver_port, pipe_writer, trust_remote_code):
+def start_detokenization_process(args, detokenization_port, httpserver_port, pipe_writer, trust_remote_code=True):
     try:
         router = DeTokenizationManager(
             args.model_dir,
@@ -627,6 +630,8 @@ def get_args():
     parser = argparse.ArgumentParser()
 
     # yapf: disable
+    parser.add_argument("--host", type=str, default="127.0.0.1")
+    parser.add_argument("--port", type=int, default=8000)
     parser.add_argument("--model_dir", type=str, default=None,
                         help="the model weight dir path, the app will load config, weights and tokenizer from this dir")
     parser.add_argument("--tokenizer_mode", type=str, default="slow",
@@ -637,10 +642,17 @@ def get_args():
                         help="the port for nccl to use for communication in distributed training")
     parser.add_argument("--max_total_token_num", type=int, default=6000,
                         help="the total token nums the gpu and model can support, equals = max_batch * (input_len + output_len)")
+    parser.add_argument("--batch_max_tokens", type=int, default=None,
+                        help="max tokens num for new cat batch, it control prefill batch size to Preventing OOM")
+    parser.add_argument("--eos_id", type=int, default=2, help="eos stop token id")
+    parser.add_argument("--running_max_req_size", type=int, default=1000,
+                        help="the max size for forward requests in the same time")
     parser.add_argument("--max_req_input_len", type=int, default=2048, help="the max value for req input tokens num")
     parser.add_argument("--max_req_total_len", type=int, default=2048 + 1024,
                         help="the max value for req_input_len + req_output_len")
     parser.add_argument("--tp", type=int, default=1, help="model tp parral size, the default is 1")
+    parser.add_argument("--disable_log_stats", action='store_true', help="disable logging throughput stats.")
+    parser.add_argument("--log_stats_interval", type=int, default=10, help="log stats interval in second.")
 
     # ---------- slora arguments ----------
     parser.add_argument("--lora-dirs", type=str, default=[], action="append",
@@ -654,9 +666,33 @@ def get_args():
     parser.add_argument("--profile", action="store_true")
     parser.add_argument("--batch-num-adapters", type=int, default=None)
     parser.add_argument("--enable-abort", action="store_true")
+
+    # debug parameters
+    # do not use, does not rule out the swap over MemAllocator
+    parser.add_argument("--no-lora-swap", action="store_true")
+    parser.add_argument("--no-lora-compute", action="store_true")
+    parser.add_argument("--no-kernel", action="store_true")
+    parser.add_argument("--no-mem-pool", action="store_true")
+    parser.add_argument("--bmm", action="store_true")
+    ''' end of slora arguments '''
+
     # yapf: enable
 
     args = parser.parse_args()
+
+    args = parser.parse_args()
+
+    assert args.max_req_input_len < args.max_req_total_len
+    setting["max_req_total_len"] = args.max_req_total_len
+    setting["nccl_port"] = args.nccl_port
+
+    if args.batch_max_tokens is None:
+        batch_max_tokens = int(1 / 6 * args.max_total_token_num)
+        batch_max_tokens = max(batch_max_tokens, args.max_req_total_len)
+        args.batch_max_tokens = batch_max_tokens
+    else:
+        assert (args.batch_max_tokens >= args.max_req_total_len), "batch_max_tokens must >= max_req_total_len"
+
     return args
 
 
@@ -692,8 +728,8 @@ def get_args():
 #     print(f"avg adapter estimated size: {tot_lora_size / len(args.lora_dirs) / MB:.2f} MB")
 
 
-from .router.manager import start_router_process
-
+from slora.common.configs.config import setting
+from slora.router.manager import start_router_process
 
 def main():
     args = get_args()
@@ -735,7 +771,6 @@ def main():
             detokenization_port,
             httpserver_port,
             pipe_detoken_writer,
-            args.trust_remote_code,
         ),
     )
     proc_detoken.start()

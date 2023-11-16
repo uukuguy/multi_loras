@@ -45,4 +45,9 @@ merge_lora:
 		--lora_model_path ${LORA_SAVE_PATH} \
 		--merged_model_name_or_path ${TASK_MODEL_PATH}
 
+slora_server:
+	python multi_loras/slora/slora_server.py \
+		--port 8000 \
+		--model_dir ${MODELS_ROOT_DIR}/meta-llama/Llama-2-7b-hf \
+
 include ../Makefile.remote
