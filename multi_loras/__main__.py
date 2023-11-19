@@ -34,6 +34,12 @@ def get_args():
     parser.add_argument("--merged_model_name_or_path", type=str, default=None)
     parser.add_argument("--push_to_hub", action="store_true", default=False)
 
+    parser.add_argument("--do_dare", action="store_true")
+    parser.add_argument("--dare_weight_mask_rate", type=float, default=0.85)
+    parser.add_argument("--dare_use_weight_rescale", action="store_true")
+    parser.add_argument("--dare_mask_strategy", type=str, default="random")
+    parser.add_argument("--dare_scaling_coefficient", type=float, default=1.0)
+
     args = parser.parse_args()
     return args
 
