@@ -25,16 +25,17 @@ Source LLM：mistral/Mistral-7B-v0.1
 DARE: weight_mask_rate=0.85 / use_weight_rescale=True / mask_stratery=random / scaling_coefficient=1.0
 
 PEFT Models:
--Intel/neural-chat-7b-v3-1 [DARE Model](https://huggingface.co/uukuguy/neural-chat-7b-v3-1-dare-0.85)
--bhenrym14/mistral-7b-platypus-fp16 [DARE Model](https://huggingface.co/uukuguy/mistral-7b-platypus-fp16-dare-0.9)
--jondurbin/airoboros-m-7b-3.1.2
--migtissera/SynthIA-7B-v1.3
--uukuguy/speechless-code-mistral-orca-7b-v1.0
--teknium/CollectiveCognition-v1.1-Mistral-7B
--ehartford/dolphin-2.1-mistral-7b or ehartford/dolphin-2.0-mistral-7b
--ehartford/dolphin-2.2.1-mistral-7b
--uukuguy/speechless-mistral-dolphin-orca-platypus-samantha-7b
--HuggingFaceH4/zephyr-7b-alpha
+
+- Intel/neural-chat-7b-v3-1 [DARE Model](https://huggingface.co/uukuguy/neural-chat-7b-v3-1-dare-0.85)
+- bhenrym14/mistral-7b-platypus-fp16 [DARE Model](https://huggingface.co/uukuguy/mistral-7b-platypus-fp16-dare-0.9)
+- jondurbin/airoboros-m-7b-3.1.2
+- migtissera/SynthIA-7B-v1.3
+- uukuguy/speechless-code-mistral-orca-7b-v1.0
+- teknium/CollectiveCognition-v1.1-Mistral-7B
+- ehartford/dolphin-2.1-mistral-7b or ehartford/dolphin-2.0-mistral-7b
+- ehartford/dolphin-2.2.1-mistral-7b
+- uukuguy/speechless-mistral-dolphin-orca-platypus-samantha-7b
+- HuggingFaceH4/zephyr-7b-alpha
 
 ### Mistral-7B-OpenOrca
 
