@@ -5,7 +5,7 @@ This script is used to do drop and rescale for the tuned model
 from tqdm import tqdm
 import torch
 import torch.nn as nn
-from transformers import AutoModelForCausalLM
+from transformers import AutoModelForCausalLM, AutoTokenizer
 from .delta_weights import DeltaWeights, copy_params_to_model
 
 default_dare_kwargs = {
@@ -120,6 +120,7 @@ def do_dare(args):
         device_map=args.device_map,
         trust_remote_code=True,
     ).half()
+    tokenizer = AutoTokenizer.from_pretrained(args.tuned_model_name_or_path, trust_remote_code=True)
 
     dare_kwargs = {
         "weight_mask_rate": args.dare_weight_mask_rate,
@@ -137,6 +138,7 @@ def do_dare(args):
     )
     copy_params_to_model(model_weights, base_model)
     print(f"Saving model to {args.save_path} ...")
+    tokenizer.save_pretrained(args.save_path)
     base_model.save_pretrained(args.save_path)
 
     print(f"Saved model to {args.save_path}")

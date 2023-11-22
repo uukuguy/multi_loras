@@ -2,18 +2,20 @@ MODELS_ROOT_DIR=/opt/local/llm_models/huggingface.co
 BASE_MODEL_PATH=${MODELS_ROOT_DIR}/mistralai/Mistral-7B-v0.1
 MIXTURE_OF_MUTI_LORAS_DIR=${MODELS_ROOT_DIR}/mixture-of-multi-loras
 
+TUNED_MODEL_PATH=${MIXTURE_OF_MUTI_LORAS_DIR}/Intel/neural-chat-7b-v3-1
 # 32002 tokens <|im_end|><|im_start|>
 # TUNED_MODEL_PATH=${MIXTURE_OF_MUTI_LORAS_DIR}/teknium/OpenHermes-2.5-Mistral-7B
-TUNED_MODEL_PATH=${MIXTURE_OF_MUTI_LORAS_DIR}/bhenrym14/mistral-7b-platypus-fp16
+# TUNED_MODEL_PATH=${MIXTURE_OF_MUTI_LORAS_DIR}/bhenrym14/mistral-7b-platypus-fp16
 # TUNED_MODEL_PATH=${MIXTURE_OF_MUTI_LORAS_DIR}/uukuguy/speechless-mistral-dolphin-orca-platypus-samantha-7b
 
-DARE_RATE=0.9
+DARE_RATE=0.85
 DARE_MODEL_SAVE_PATH=${TUNED_MODEL_PATH}-dare-${DARE_RATE}
 
 drop_and_rescale:
 	PYTHONPATH=${PWD} \
 	python -m multi_loras \
 		drop_and_rescale \
+		--dare_weight_mask_rate ${DARE_RATE} \
 		--base_model_name_or_path ${BASE_MODEL_PATH} \
 		--tuned_model_name_or_path ${TUNED_MODEL_PATH} \
 		--save_path ${DARE_MODEL_SAVE_PATH} 
