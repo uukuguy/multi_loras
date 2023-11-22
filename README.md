@@ -14,6 +14,28 @@ Tools:
 
 ## Experiments
 
+### Mixture-of-Multi-LoRAs
+
+DARE (Drop and REscale) was proposed in the paper [Language Models are Super Mario: Absorbing Abilities from Homologous Models as a Free Lunch](http://arxiv.org/abs/2311.03099). The insight is that most delta parameters can be directly set to zero without affecting the capabilities of SFT LMs. Based on this, we can use the DARE algorithm to fine-tune multiple efficient parameterized models with different capabilities by sparsifying delta parameters, and further obtain a more powerful new model that maintains the strengths of each submodel through model merging algorithms.
+
+The following experiment will select multiple models with strong overall performance and outstanding sub-indicators on the [Open LLM Leaderboard](https://huggingface.co/spaces/HuggingFaceH4/open_llm_leaderboard). Each model will be built into its own DARE model, and the existing extract-lora function of multi-loras will be used to extract the LoRA module of each DARE model. It is hoped to ultimately build a new powerful model composed of multiple professional LoRA modules. We will name this Mixture-of-Multi-LoRAs.
+
+Source LLM：mistral/Mistral-7B-v0.1
+
+DARE: weight_mask_rate=0.85 / use_weight_rescale=True / mask_stratery=random / scaling_coefficient=1.0
+
+PEFT Models:
+-Intel/neural-chat-7b-v3-1 [DARE Model](https://huggingface.co/uukuguy/neural-chat-7b-v3-1-dare-0.85)
+-bhenrym14/mistral-7b-platypus-fp16 [DARE Model](https://huggingface.co/uukuguy/mistral-7b-platypus-fp16-dare-0.9)
+-jondurbin/airoboros-m-7b-3.1.2
+-migtissera/SynthIA-7B-v1.3
+-uukuguy/speechless-code-mistral-orca-7b-v1.0
+-teknium/CollectiveCognition-v1.1-Mistral-7B
+-ehartford/dolphin-2.1-mistral-7b or ehartford/dolphin-2.0-mistral-7b
+-ehartford/dolphin-2.2.1-mistral-7b
+-uukuguy/speechless-mistral-dolphin-orca-platypus-samantha-7b
+-HuggingFaceH4/zephyr-7b-alpha
+
 ### Mistral-7B-OpenOrca
 
 - Extract lora model [Mistral-7B-OpenOrca-lora](https://huggingface.co/uukuguy/Mistral-7B-OpenOrca-lora) from [Mistral-7B-OpenOrca](https://huggingface.co/Open-Orca/Mistral-7B-OpenOrca);
