@@ -1,8 +1,9 @@
 #!/usr/bin/env python
 # Derived from yule-BUAA/MergeLM/merging_methods.py
 
+import copy
 from tqdm import tqdm
-from collections import defaultdict
+from collections import defaultdict, OrderedDict
 import torch
 import torch.nn as nn
 from delta_weights import (
@@ -38,7 +39,6 @@ def average_merging(
 
     models_to_merge = apply_dare_to_model(models_to_merge, base_model, dare_kwargs)
 
-    copy_params_to_model(model_weights, base_model)
     for model in models_to_merge:
         params_dict = get_model_params(model)
         for param_name, param_value in params_dict.items():
@@ -57,6 +57,7 @@ def average_merging(
 def task_arithmetic_merging(
     base_model: nn.Module,
     models_to_merge: list,
+    dare_kwargs: dict = None,
     exclude_param_names_regex: list = None,
     scaling_coefficient: float = 1.0,
 ):
@@ -75,7 +76,7 @@ def task_arithmetic_merging(
     # iterate each individual model that needs to be merged
     with torch.no_grad():
         # sum up the task vectors
-        merged_delta_weights = delta_weights_list[0] + delta_weights[1]
+        merged_delta_weights = delta_weights_list[0] + delta_weights_list[1]
         for index in range(2, len(delta_weights_list)):
             merged_delta_weights = merged_delta_weights + delta_weights_list[index]
 
@@ -93,6 +94,7 @@ def ties_merging(
     exclude_param_names_regex: list = None,
     param_value_mask_rate: float = 0.8,
     scaling_coefficient: float = 1.0,
+    dare_kwargs = None,
 ):
     """
     ties merging method
@@ -127,7 +129,7 @@ def ties_merging(
         :param delta_weights: DeltaWeights, delta weights
         :return:
         """
-        task_vector_param_dict = copy.deepcopy(delta_weights.params_dict)
+        params_dict = copy.deepcopy(delta_weights.params_dict)
         sorted_params_dict = OrderedDict(sorted(params_dict.items()))
 
         nn.utils.vector_to_parameters(single_vector, sorted_params_dict.values())

@@ -8,7 +8,9 @@ MIXTURE_OF_MUTI_LORAS_DIR=${MODELS_ROOT_DIR}/mixture-of-multi-loras
 # TUNED_MODEL_PATH=${MIXTURE_OF_MUTI_LORAS_DIR}/migtissera/SynthIA-7B-v1.3
 # 32002 tokens <|im_end|><|im_start|>
 # TUNED_MODEL_PATH=${MIXTURE_OF_MUTI_LORAS_DIR}/teknium/OpenHermes-2.5-Mistral-7B
-TUNED_MODEL_PATH=${MIXTURE_OF_MUTI_LORAS_DIR}/uukuguy/speechless-mistral-dolphin-orca-platypus-samantha-7b
+TUNED_MODEL_PATH=${MIXTURE_OF_MUTI_LORAS_DIR}/teknium/CollectiveCognition-v1.1-Mistral-7B
+# TUNED_MODEL_PATH=${MIXTURE_OF_MUTI_LORAS_DIR}/uukuguy/speechless-mistral-dolphin-orca-platypus-samantha-7b
+
 
 DARE_RATE=0.85
 DARE_MODEL_SAVE_PATH=${TUNED_MODEL_PATH}-dare-${DARE_RATE}

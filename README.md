@@ -16,7 +16,7 @@ Tools:
 
 ### Mixture-of-Multi-LoRAs
 
-DARE (Drop and REscale) was proposed in the paper [Language Models are Super Mario: Absorbing Abilities from Homologous Models as a Free Lunch](http://arxiv.org/abs/2311.03099). The insight is that most delta parameters can be directly set to zero without affecting the capabilities of SFT LMs. Based on this, we can use the DARE algorithm to fine-tune multiple efficient parameterized models with different capabilities by sparsifying delta parameters, and further obtain a more powerful new model that maintains the strengths of each submodel through model merging algorithms.
+DARE (Drop and REscale) was proposed in the paper [Language Models are Super Mario: Absorbing Abilities from Homologous Models as a Free Lunch](http://arxiv.org/abs/2311.03099). The insight is that most delta parameters can be directly set to zero without affecting the capabilities of SFT LMs. Based on this, we can use the DARE algorithm to sparsify the delta parameters of multiple parameter efficient fine-tuning models with different capabilities, and further obtain a more powerful new model through model merging algorithm, which preserves the advantages of each sub-model.
 
 The following experiment will select multiple models with strong overall performance and outstanding sub-indicators on the [Open LLM Leaderboard](https://huggingface.co/spaces/HuggingFaceH4/open_llm_leaderboard). Each model will be built into its own DARE model, and the existing extract-lora function of multi-loras will be used to extract the LoRA module of each DARE model. It is hoped to ultimately build a new powerful model composed of multiple professional LoRA modules. We will name this Mixture-of-Multi-LoRAs.
 
@@ -31,7 +31,7 @@ PEFT Models:
 - jondurbin/airoboros-m-7b-3.1.2 [DARE Model](https://huggingface.co/uukuguy/airoboros-m-7b-3.1.2-dare-0.85)
 - migtissera/SynthIA-7B-v1.3 [DARE Model](https://huggingface.co/uukuguy/SynthIA-7B-v1.3-dare-0.85)
 - uukuguy/speechless-code-mistral-orca-7b-v1.0
-- teknium/CollectiveCognition-v1.1-Mistral-7B
+- teknium/CollectiveCognition-v1.1-Mistral-7B [DARE Model](teknium/CollectiveCognition-v1.1-Mistral-7B)
 - ehartford/dolphin-2.2.1-mistral-7b
 - uukuguy/speechless-mistral-dolphin-orca-platypus-samantha-7b [DARE Model](https://huggingface.co/uukuguy/speechless-mistral-dolphin-orca-platypus-samantha-7b-dare-0.85)
 - HuggingFaceH4/zephyr-7b-alpha
