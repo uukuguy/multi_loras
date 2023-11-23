@@ -36,7 +36,7 @@ PEFT Models:
 - teknium/CollectiveCognition-v1.1-Mistral-7B [DARE Model](teknium/CollectiveCognition-v1.1-Mistral-7B)
 - ehartford/dolphin-2.2.1-mistral-7b
 - uukuguy/speechless-mistral-dolphin-orca-platypus-samantha-7b [DARE Model](https://huggingface.co/uukuguy/speechless-mistral-dolphin-orca-platypus-samantha-7b-dare-0.85)
-- HuggingFaceH4/zephyr-7b-alpha
+- HuggingFaceH4/zephyr-7b-alpha [DARE Model](https://huggingface.co/uukuguy/zephyr-7b-alpha-dare-0.85)
 
 ### Mistral-7B-OpenOrca
 

@@ -18,7 +18,11 @@ BASE_MODEL_PATH=${MODELS_ROOT_DIR}/mistralai/Mistral-7B-v0.1
 # TASK_MODEL_PATH=${MODELS_ROOT_DIR}/$(shell basename ${TUNED_MODEL_PATH})-lora-merged
 
 # ---------- Open-Orca/Mistral-7B-OpenOrca ----------
-TUNED_MODEL_PATH=${MODELS_ROOT_DIR}/Open-Orca/Mistral-7B-OpenOrca
+# TUNED_MODEL_PATH=${MODELS_ROOT_DIR}/Open-Orca/Mistral-7B-OpenOrca
+
+# ---------- HuggingFaceH4/zephyr-7b-alpha ----------
+TUNED_MODEL_PATH=${MODELS_ROOT_DIR}/HuggingFaceH4/zephyr-7b-alpha 
+
 LORA_R=16
 LORA_SAVE_PATH=${MODELS_ROOT_DIR}/$(shell basename ${TUNED_MODEL_PATH})-r${LORA_R}-lora
 TASK_MODEL_PATH=${MODELS_ROOT_DIR}/$(shell basename ${TUNED_MODEL_PATH})-r${LORA_R}-lora-merged
