@@ -18,6 +18,8 @@ Tools:
 
 DARE (Drop and REscale) was proposed in the paper [Language Models are Super Mario: Absorbing Abilities from Homologous Models as a Free Lunch](http://arxiv.org/abs/2311.03099). The insight is that most delta parameters can be directly set to zero without affecting the capabilities of SFT LMs. Based on this, we can use the DARE algorithm to sparsify the delta parameters of multiple parameter efficient fine-tuning models with different capabilities, and further obtain a more powerful new model through model merging algorithm, which preserves the advantages of each sub-model.
 
+By drop the redundant delta parameters, it's possible to mitigate the mutual interference between merging models. What I want to do is try to verify this point. If the verification is successful, then I may have the possibility to merge multiple homologous models and maintain the prominent advantages of each model. And all of this does not require retraining the model, which is the most appealing aspect to me.
+
 The following experiment will select multiple models with strong overall performance and outstanding sub-indicators on the [Open LLM Leaderboard](https://huggingface.co/spaces/HuggingFaceH4/open_llm_leaderboard). Each model will be built into its own DARE model, and the existing extract-lora function of multi-loras will be used to extract the LoRA module of each DARE model. It is hoped to ultimately build a new powerful model composed of multiple professional LoRA modules. We will name this Mixture-of-Multi-LoRAs.
 
 Source LLM：mistral/Mistral-7B-v0.1
