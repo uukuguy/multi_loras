@@ -66,8 +66,6 @@ PEFT Models:
 ## Install
 
 ```bash
-pip install multi-loras
-# - or -
 pip install git+https://github.com/uukuguy/multi_loras.git
 ```
 
@@ -76,6 +74,7 @@ pip install git+https://github.com/uukuguy/multi_loras.git
 Extract LoRA model from a model.
 
 ```bash
+# --bits only support 4 or 8
 python -m multi_loras \
     extract_lora \
     --base_model_name_or_path ${BASE_MODEL_PATH} \

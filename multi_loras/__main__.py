@@ -42,7 +42,11 @@ def get_args():
         "--device_map", type=str, default="cpu", help="Path to device map."
     )
     parser.add_argument(
-        "--bits", type=int, default=4, help="Bits to use for quantization."
+        "--bits",
+        type=int,
+        default=4,
+        choices=[4, 8],
+        help="Bits to use for quantization. Only support 4 or 8.",
     )
     parser.add_argument("--lora_r", type=int, default=64, help="Rank for LORA.")
     parser.add_argument("--lora_alpha", type=float, default=16, help="Alpha for LORA.")

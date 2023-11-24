@@ -81,9 +81,11 @@ def load_model_and_init_lora(args, model_name_or_path, model_kwargs):
     print(f"Loading model from {model_name_or_path} ...")
     model = AutoModelForCausalLM.from_pretrained(model_name_or_path, **model_kwargs)
     model = create_lora_model(args, model)
+    num_modules = 0
     for k, params in model.named_parameters():
         print(k, params.shape)
-    print(f"Loaded model from {model_name_or_path}.")
+        num_modules += 1
+    print(f"Loaded model ({num_modules} modules) from {model_name_or_path}.")
     return model
 
 # SVD on residual
@@ -134,8 +136,8 @@ def do_extract_lora(args):
         # SVD on residual
         U, Vh = svd_distill(residual, rank=rank, clamp_quantile=clamp_quantile)
 
-        assert lora_base.lora_A.default.weight.shape == Vh.shape
-        assert lora_base.lora_B.default.weight.shape == U.shape
+        assert lora_base.lora_A.default.weight.shape == Vh.shape, f"{lora_base=}"
+        assert lora_base.lora_B.default.weight.shape == U.shape, f"{lora_base=}"
 
         lora_base.lora_A.default.weight.data = Vh.to(device=device, dtype=dtype)
         lora_base.lora_B.default.weight.data = U.to(device=device, dtype=dtype)
@@ -153,7 +155,7 @@ def get_args():
     parser.add_argument("--tuned_model_name_or_path", type=str, required=True, help="Path to the tuned model.")
     parser.add_argument("--save_path", type=str, default="svd_distill_model", help="Path to save the distilled model.")
     parser.add_argument("--device_map", type=str, default="cpu", help="Path to device map.")
-    parser.add_argument("--bits", type=int, default=4, help="Bits to use for quantization.")
+    parser.add_argument("--bits", type=int, default=4, choices=[4, 8], help="Bits to use for quantization. Only support 4 or 8.")
     parser.add_argument("--lora_r", type=int, default=128, help="Rank for LORA.")
     parser.add_argument("--lora_alpha", type=float, default=16, help="Alpha for LORA.")
     parser.add_argument("--lora_dropout", type=float, default=0.05, help="Dropout for LORA.")
