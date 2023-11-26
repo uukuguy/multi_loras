@@ -38,6 +38,14 @@ PEFT Models:
 - uukuguy/speechless-mistral-dolphin-orca-platypus-samantha-7b [DARE Model](https://huggingface.co/uukuguy/speechless-mistral-dolphin-orca-platypus-samantha-7b-dare-0.85)
 - HuggingFaceH4/zephyr-7b-alpha [DARE Model](https://huggingface.co/uukuguy/zephyr-7b-alpha-dare-0.85)
 
+LoRA Modules:
+
+Use `mixture-of-multi-loras/extract_dare_loras.sh` script to extract LoRA module from all DARE models.
+
+extract parameters: lora_r=64/bits=4/bf16
+
+[huggingface.co/uukuguy/speechless-multi-loras-r64](https://huggingface.co/uukuguy/speechless-multi-loras-r64)
+
 ### Mistral-7B-OpenOrca
 
 - Extract lora model [Mistral-7B-OpenOrca-lora](https://huggingface.co/uukuguy/Mistral-7B-OpenOrca-lora) from [Mistral-7B-OpenOrca](https://huggingface.co/Open-Orca/Mistral-7B-OpenOrca);

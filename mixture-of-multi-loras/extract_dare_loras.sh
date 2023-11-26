@@ -8,7 +8,7 @@ MIXTURE_ROOT_DIR=${MODELS_ROOT_DIR}/mixture-of-multi-loras
 DARE_MODELS="bhenrym14/mistral-7b-platypus-fp16 Intel/neural-chat-7b-v3-1 jondurbin/airoboros-m-7b-3.1.2 migtissera/SynthIA-7B-v1.3 teknium/CollectiveCognition-v1.1-Mistral-7B uukuguy/speechless-mistral-dolphin-orca-platypus-samantha-7b HuggingFaceH4/zephyr-7b-alpha"
 
 LORA_R=64
-LORA_MODELS_ROOT_DIR=${MIXTURE_ROOT_DIR}/loras-r${LORA_R}
+LORA_MODELS_ROOT_DIR=${MIXTURE_ROOT_DIR}/speechless-multi-loras-r${LORA_R}
 mkdir -p ${LORA_MODELS_ROOT_DIR}
 
 for DARE_MODEL in ${DARE_MODELS}; do
