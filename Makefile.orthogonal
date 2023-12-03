@@ -1,0 +1,15 @@
+MODELS_ROOT_DIR=/opt/local/llm_models/huggingface.co
+BASE_MODEL_PATH=${MODELS_ROOT_DIR}/mistralai/Mistral-7B-v0.1
+MIXTURE_OF_MUTI_LORAS_DIR=${MODELS_ROOT_DIR}/mixture-of-multi-loras
+
+TUNED_MODEL_PATH=${MIXTURE_OF_MUTI_LORAS_DIR}/uukuguy/speechless-code-mistral-7b-v1.0
+
+ORTHOGONAL_SAVE_PATH=${TUNED_MODEL_PATH}-orthogonal
+
+orthogonal:
+	PYTHONPATH=${PWD} \
+	python -m multi_loras \
+		orthogonal \
+		--base_model_name_or_path ${BASE_MODEL_PATH} \
+		--tuned_model_name_or_path ${TUNED_MODEL_PATH} \
+		--save_path ${ORTHOGONAL_SAVE_PATH} 

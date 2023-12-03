@@ -2,13 +2,14 @@
 from .extract_lora import do_extract_lora
 from .merge_peft_adapters import do_merge_lora
 from .dare import do_dare
-from .delta_weights import do_delta_weights
+from .delta_weights import do_delta_weights, do_orthogonal
 
 cmd_functions = {
     "extract_lora": do_extract_lora,
     "merge_lora": do_merge_lora,
     "drop_and_rescale": do_dare,
     "delta_weights": do_delta_weights,
+    "orthogonal": do_orthogonal,
 }
 available_commands = cmd_functions.keys()
 
