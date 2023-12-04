@@ -16,6 +16,26 @@ Tools:
 
 ### Mixture-of-Multi-LoRAs
 
+2023.12.04
+
+It seems that there are some issues with the calculation of the GSM8K and DROP metrics on the Open LLM Leaderboard. Currently, the DROP metric has been removed from the official website, while the calculation of GSM8K metric remains chaotic, with significant differences in values among various models. Therefore, I am temporarily using ARC, HellaSwag, MMLU, TruthfulQA, and Winogrande metrics to evaluate the performance of DARE.
+
+| Model                                         | Average| ARC    | HellaSwag | MMLU| TruthfulQA | Winogrande |
+| ------                                        | ------ | ------ | ------ | ------ | ------ | ------ |
+| CollectiveCognition-v1.1-Mistral-7B           | 68.326 | 62.12  | 84.17  | 62.35  | 57.62  | 75.37  |
+| CollectiveCognition-v1.1-Mistral-7B-dare-0.85 | 66.676 | 61.01  | 84.31  | 64.34  | 44.87  | 78.85  |
+| airoboros-m-7b-3.1.2                          | 67.722 | 61.86  | 83.51  | 61.91  | 53.75  | 77.58  |
+| airoboros-m-7b-3.1.2-dare-0.85                | 66.144 | 61.09  | 83.57  | 64.05  | 43.64  | 78.37  |
+| SynthIA-7B-v1.3                               | 67.688 | 62.12  | 83.45  | 62.65  | 51.37  | 78.85  |
+| SynthIA-7B-v1.3-dare-0.85                     | 66.340 | 61.01  | 83.50  | 64.49  | 43.77  | 78.93  |
+|                                               |        |        |        |        |        |        |
+| [speechless-mistral-7b-dare-0.85](https://huggingface.co/uukuguy/speechless-mistral-7b-dare-0.85) (merge 6 DARE models)| 68.516 | 63.57 | 84.82 | 64.29 | 50.66 | 79.24 |
+
+From the official website evaluation results, after deleting 85% of the incremental parameters, the overall indicators remain above 97.5% of the original performance indicators. Among them, ARC slightly decreases, TruthfulQA significantly decreases, MMLU significantly increases, and HellaSwagt and Winogrande slightly increase. The most significant impact is the significant decrease in TruthfulQA, while other indicators are relatively well maintained, with MMLU showing a noticeable increase.
+
+
+2023.11.26
+
 DARE (Drop and REscale) was proposed in the paper [Language Models are Super Mario: Absorbing Abilities from Homologous Models as a Free Lunch](http://arxiv.org/abs/2311.03099). The insight is that most delta parameters can be directly set to zero without affecting the capabilities of SFT LMs. Based on this, we can use the DARE algorithm to sparsify the delta parameters of multiple parameter efficient fine-tuning models with different capabilities, and further obtain a more powerful new model through model merging algorithm, which preserves the advantages of each sub-model.
 
 By drop the redundant delta parameters, it's possible to mitigate the mutual interference between merging models. What I want to do is try to verify this point. If the verification is successful, then I may have the possibility to merge multiple homologous models and maintain the prominent advantages of each model. And all of this does not require retraining the model, which is the most appealing aspect to me.
