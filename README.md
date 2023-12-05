@@ -22,6 +22,8 @@ It seems that there are some issues with the calculation of the GSM8K and DROP m
 
 | Model                                         | Average| ARC    | HellaSwag | MMLU| TruthfulQA | Winogrande |
 | ------                                        | ------ | ------ | ------ | ------ | ------ | ------ |
+| zephyr-7b-alpha                               | 68.590 | 61.01  | 84.04  | 61.39  | 57.90  | 78.61  |
+| zephyr-7b-alpha-dare-0.85                     | 66.402 | 61.18  | 83.67  | 64.30  | 44.41  | 78.45  |
 | CollectiveCognition-v1.1-Mistral-7B           | 68.326 | 62.12  | 84.17  | 62.35  | 57.62  | 75.37  |
 | CollectiveCognition-v1.1-Mistral-7B-dare-0.85 | 66.676 | 61.01  | 84.31  | 64.34  | 44.87  | 78.85  |
 | airoboros-m-7b-3.1.2                          | 67.722 | 61.86  | 83.51  | 61.91  | 53.75  | 77.58  |
