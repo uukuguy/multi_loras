@@ -1,8 +1,6 @@
 #!/usr/bin/env python
 """
-https://chat.openai.com/share/75193e41-11d3-4109-902c-cb3b52286275
-
-To achieve your goal of combining two fine-tuned models (A1 and A2) that specialize in different tasks (code and summarization, respectively), with a shared base model (A), and minimize interference between the two sets of weights, you can indeed use an orthogonal approach. The idea here is to isolate the task-specific variations in each model and combine them in a way that preserves their unique strengths.
+To achieve the goal of combining two fine-tuned models (A1 and A2) that specialize in different tasks (code and summarization, respectively), with a shared base model (A), and minimize interference between the two sets of weights, you can indeed use an orthogonal approach. The idea here is to isolate the task-specific variations in each model and combine them in a way that preserves their unique strengths.
 
 Here's a step-by-step approach to achieve this:
 
