@@ -5,7 +5,9 @@ import numpy as np
 from tqdm import tqdm
 import torch
 import torch.nn as nn
-from transformers import AutoModelForCausalLM, PreTrainedModel, PreTrainedTokenizer
+from transformers import AutoModelForCausalLM, AutoTokenizer, PreTrainedModel, PreTrainedTokenizer
+
+from .orthogonal_component import calculate_orthogonal_component
 
 
 def is_exclude_param_name(param_name: str, exclude_param_names_regex: list):
@@ -175,8 +177,32 @@ def do_delta_weights(args):
 def do_orthogonal(args):
     base_model, tuned_model = load_models(args)
 
-    delta_weights = DeltaWeights(base_model=base_model, tuned_model=tuned_model)
-    print(f"Saving delta weights layer params to {args.save_path} ...")
-    delta_weights.save(args.save_path)
+    print(f"Calculating orthogonal component ...")
+    base_params = get_model_params(base_model)
+    tuned_params = get_model_params(tuned_model)
 
-    print(f"Succesfully saved delta weights layer params to {args.save_path}")
+    orthogonal_params = {}
+    for key, tuned_weights in tqdm(tuned_params.items(), ncols=100, desc=f"Orthogonal"):
+        base_weights = base_params[key]
+        tuned_weights = tuned_weights.detach().cpu().numpy()
+        base_weights = base_weights.detach().cpu().numpy()
+        orthogonal_weights =calculate_orthogonal_component(base_weights, tuned_weights, scaling_factor=args.orthogonal_scaling_factor)
+        orthogonal_params[key] = torch.tensor(orthogonal_weights)
+
+    print(f"Combining orthogonal component with pretrained model ...")
+    delta_weights = DeltaWeights(params_dict=orthogonal_params)
+    new_model_weights = delta_weights.combine_with_pretrained_model(base_model)
+    copy_params_to_model(new_model_weights, base_model)
+
+    print(f"Saving model to {args.save_path} ...")
+    tokenizer = AutoTokenizer.from_pretrained(args.tuned_model_name_or_path, trust_remote_code=True)
+    tokenizer.save_pretrained(args.save_path)
+    base_model.save_pretrained(args.save_path)
+
+    print(f"Saved model to {args.save_path}")
+
+    # delta_weights = DeltaWeights(base_model=base_model, tuned_model=tuned_model)
+    # print(f"Saving delta weights layer params to {args.save_path} ...")
+    # delta_weights.save(args.save_path)
+
+    # print(f"Succesfully saved delta weights layer params to {args.save_path}")

@@ -104,6 +104,8 @@ def get_args():
     parser.add_argument("--dare_mask_strategy", type=str, default="random")
     parser.add_argument("--dare_scaling_coefficient", type=float, default=1.0)
 
+    parser.add_argument("--orthogonal_scaling_factor", type=float, default=1.0)
+
     args = parser.parse_args()
     return args
 

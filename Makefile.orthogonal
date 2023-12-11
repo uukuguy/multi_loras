@@ -2,14 +2,25 @@ MODELS_ROOT_DIR=/opt/local/llm_models/huggingface.co
 BASE_MODEL_PATH=${MODELS_ROOT_DIR}/mistralai/Mistral-7B-v0.1
 MIXTURE_OF_MUTI_LORAS_DIR=${MODELS_ROOT_DIR}/mixture-of-multi-loras
 
-TUNED_MODEL_PATH=${MIXTURE_OF_MUTI_LORAS_DIR}/uukuguy/speechless-code-mistral-7b-v1.0
+# TUNED_MODEL_PATH=${MIXTURE_OF_MUTI_LORAS_DIR}/uukuguy/speechless-code-mistral-7b-v1.0
+TUNED_MODEL_PATH=${MIXTURE_OF_MUTI_LORAS_DIR}/uukuguy/speechless-mistral-six-in-one-7b
 
-ORTHOGONAL_SAVE_PATH=${TUNED_MODEL_PATH}-orthogonal
+# ORTHOGONAL_SAVE_PATH=${TUNED_MODEL_PATH}-orthogonal
+ORTHOGONAL_SCALING_FACTOR=1.0
 
-orthogonal:
+# orthogonal:
+# 	PYTHONPATH=${PWD} \
+#python -m multi_loras \
+# 		orthogonal \
+#		--base_model_name_or_path ${BASE_MODEL_PATH} \
+#		--tuned_model_name_or_path ${TUNED_MODEL_PATH} \
+#		--save_path ${ORTHOGONAL_SAVE_PATH} 
+
+mistral_six_in_one:
 	PYTHONPATH=${PWD} \
 	python -m multi_loras \
 		orthogonal \
+        --orthogonal_scaling_factor ${ORTHOGONAL_SCALING_FACTOR} \
 		--base_model_name_or_path ${BASE_MODEL_PATH} \
 		--tuned_model_name_or_path ${TUNED_MODEL_PATH} \
-		--save_path ${ORTHOGONAL_SAVE_PATH} 
+		--save_path ${TUNED_MODEL_PATH}-orth-${ORTHOGONAL_SCALING_FACTOR}
