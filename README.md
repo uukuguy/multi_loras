@@ -88,10 +88,10 @@ extract parameters: lora_r=64/bits=4/bf16
 
 #### Open LLM Leaderboard
 
-| | ARC_acc_norm (25-shot) | HellaSwag_acc_norm (10-shot) | MMLU_acc (5-shot) | TruthfulQA_mc2 (0-shot) | Open LLM Score |
+| | Average | ARC_acc_norm (25-shot) | HellaSwag_acc_norm (10-shot) | MMLU_acc (5-shot) | TruthfulQA_mc2 (0-shot) | Winogrande (5-shot) | GSM8K (5-shot) |
 | ------ | ------ | ------ | ------ | ------ | ------ |
-| Mistral-7B-SlimOrca | 62.54 | 83.86 | **62.77** | **54.23** |  **65.85** |
-| Mistral-7B-OpenOrca | **64.08** | **83.99** | 62.24 | 53.05 |  65.84 |
+| Mistral-7B-OpenOrca | 60.17 | 64.08 | 83.99 | 62.24 | 53.05 |  77.74 | 19.94 |
+| [Mistral-7B-OpenOrca-lora](https://huggingface.co/uukuguy/Mistral-7B-OpenOrca-lora) | 58.14 | 61.95 | 83.62 | 64.16 | 42.74 | 79.08 | 17.29 |
 
 ## Install
 
