@@ -10,11 +10,25 @@ Tools:
 
 - Extract the LoRA module from a model that has undergone efficient parameter fine-tuning.
 - Tool for merging LoRA module into the base model.
-- Multi LoRAs router (Under development)
+- Multi LoRAs router (A gradient-free learning implement inspired by [lorahub](https://github.com/sail-sg/lorahub))
 
 ## Experiments
 
 ### Mixture-of-Multi-LoRAs
+
+2024.01.05
+
+[speechless-mistral-moloras-7b](https://huggingface.co/uukuguy/speechless-mistral-moloras-7b)
+
+The goal of the work is to combine multiple professional models based on the same base model in order to achieve comparable fine-tuning effects on unknown tasks without training from scratch. This will be achieved by using Multi-LoRAs routers to automatically combine dedicated models.
+
+Implemented a Multi-LoRAs routing inspired by lorahub's gradient-free learning.
+
+Continuing from previous experiments, extract LoRA modules from 6 DARE models (base model Mistral-7B-v0.1). The optimal weight ratio of the LoRA modules was calculated using a gradient-free algorithm, and then fused to generate the final model.
+
+Need to wait for the evaluation metric data provided by Open LLM and compare it with the results of the speechless-mistral-7b-dare-0.85 model.
+
+[All LoRA modules](https://huggingface.co/uukuguy/speechless-multi-loras-r64)
 
 2023.12.04
 
@@ -32,12 +46,10 @@ It seems that there are some issues with the calculation of the GSM8K and DROP m
 | SynthIA-7B-v1.3-dare-0.85                     | 66.340 | 61.01  | 83.50  | 64.49  | 43.77  | 78.93  |
 | neural-chat-7b-v3-1                           | 70.002 | 66.21  | 83.64  | 62.37  | 59.65  | 78.14  |
 | neural-chat-7b-v3-1-dare-0.85                 | 66.856 | 61.95  | 83.84  | 64.43  | 44.90  | 79.16 |
-
 |                                               |        |        |        |        |        |        |
 | [speechless-mistral-7b-dare-0.85](https://huggingface.co/uukuguy/speechless-mistral-7b-dare-0.85) (merge 6 DARE models)| 68.516 | 63.57 | 84.82 | 64.29 | 50.66 | 79.24 |
 
 From the official website evaluation results, after deleting 85% of the incremental parameters, the overall indicators remain above 97.5% of the original performance indicators. Among them, ARC slightly decreases, TruthfulQA significantly decreases, MMLU significantly increases, and HellaSwagt and Winogrande slightly increase. The most significant impact is the significant decrease in TruthfulQA, while other indicators are relatively well maintained, with MMLU showing a noticeable increase.
-
 
 2023.11.26
 

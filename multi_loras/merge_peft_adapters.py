@@ -5,7 +5,7 @@ from transformers import AutoModelForCausalLM, AutoTokenizer
 from peft import PeftModel
 
 # from utils.model_utils import merge_peft_adapters
-def merge_peft_adapters(base_model_name_or_path, lora_model_path, merged_model_name_or_path=None, push_to_hub=False):
+def merge_peft_adapters(base_model_name_or_path, peft_model_path, merged_model_name_or_path=None, push_to_hub=False):
     if merged_model_name_or_path is None:
         merged_model_name_or_path = f"{base_model_name_or_path}-merged"
 
@@ -18,8 +18,8 @@ def merge_peft_adapters(base_model_name_or_path, lora_model_path, merged_model_n
         trust_remote_code=True,
     )
 
-    print(f"Loading peft model from {lora_model_path} ...")
-    model = PeftModel.from_pretrained(base_model, lora_model_path)
+    print(f"Loading peft model from {peft_model_path} ...")
+    model = PeftModel.from_pretrained(base_model, peft_model_path)
     print(f"Merging ...")
     model = model.merge_and_unload()
 
@@ -35,25 +35,23 @@ def merge_peft_adapters(base_model_name_or_path, lora_model_path, merged_model_n
         tokenizer.save_pretrained(merged_model_name_or_path)
         print(f"Model saved to {merged_model_name_or_path}")
     
-def do_merge_lora(args):
-    merge_peft_adapters(base_model_name_or_path=args.base_model_name_or_path, 
-                        lora_model_path=args.lora_model_path, 
-                        merged_model_name_or_path=args.merged_model_name_or_path,
-                        push_to_hub=args.push_to_hub
-                        )
 
 def main():
     import argparse
     parser = argparse.ArgumentParser()
 
     parser.add_argument("--base_model_name_or_path", type=str)
-    parser.add_argument("--lora_model_path", type=str)
+    parser.add_argument("--peft_model_path", type=str)
     parser.add_argument("--merged_model_name_or_path", type=str, default=None)
     parser.add_argument("--push_to_hub", action="store_true", default=False)
 
     args = parser.parse_args()
-    do_merge_lora(args)
 
+    merge_peft_adapters(base_model_name_or_path=args.base_model_name_or_path, 
+                        peft_model_path=args.peft_model_path, 
+                        merged_model_name_or_path=args.merged_model_name_or_path,
+                        push_to_hub=args.push_to_hub
+                        )
 
 
 if __name__ == "__main__" :

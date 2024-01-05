@@ -386,6 +386,8 @@ def do_learn(args):
     # print(f"Saved the model to {args.output_dir}")
 
 multi_loras_dir = "/opt/local/llm_models/huggingface.co/mixture-of-multi-loras/speechless-multi-loras-r64"
+# type(recommendation)=<class 'nevergrad.parametrization.data.Array'>, recommendation=Array{(6,),Cl([-1.5 -1.5 -1.5 -1.5 -1.5 -1.5],[1.5 1.5 1.5 1.5 1.5 1.5],b)}[sigma=[0.5 0.5 0.5 0.5 0.5 0.5]]:[-8.96515221e-07  2.34189008e-07 -9.26112899e-07 -7.87191754e-07 -1.26186896e-09 -2.01161302e-07]
+# lora_ratios=array([-8.96515221e-07,  2.34189008e-07, -9.26112899e-07, -7.87191754e-07, -1.26186896e-09, -2.01161302e-07])
 lora_module_list = [
     f"{multi_loras_dir}/Intel/neural-chat-7b-v3-1-lora",
     f"{multi_loras_dir}/migtissera/SynthIA-7B-v1.3-lora",
