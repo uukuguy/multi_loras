@@ -26,9 +26,64 @@ Implemented a Multi-LoRAs routing inspired by lorahub's gradient-free learning.
 
 Continuing from previous experiments, extract LoRA modules from 6 DARE models (base model Mistral-7B-v0.1). The optimal weight ratio of the LoRA modules was calculated using a gradient-free algorithm, and then fused to generate the final model.
 
-Need to wait for the evaluation metric data provided by Open LLM and compare it with the results of the speechless-mistral-7b-dare-0.85 model.
+#### Base model Mistral-7B-v0.1 and 6 LoRA modules
 
-[All LoRA modules](https://huggingface.co/uukuguy/speechless-multi-loras-r64)
+Download all LoRA modules from [speechless-multi-loras-r64](https://huggingface.co/uukuguy/speechless-multi-loras-r64).
+
+```python
+lora_module_list = [
+    f"{multi_loras_dir}/Intel/neural-chat-7b-v3-1-lora",
+    f"{multi_loras_dir}/migtissera/SynthIA-7B-v1.3-lora",
+    f"{multi_loras_dir}/jondurbin/airoboros-m-7b-3.1.2-lora",
+    f"{multi_loras_dir}/bhenrym14/mistral-7b-platypus-fp16-lora",
+    f"{multi_loras_dir}/teknium/CollectiveCognition-v1.1-Mistral-7B-lora",
+    f"{multi_loras_dir}/uukuguy/speechless-mistral-dolphin-orca-platypus-samantha-7b-lora",
+]
+```
+
+#### Dataset
+
+Use the popular Alpaca dataset as learning samples. For the purpose of quick validation, only 64 random learning samples were selected.
+
+It can be considered that these selected data with relatively small quantities are typical samples of a task. Our goal is to learn and optimize a LoRA for the task based on the existing 6 "professional" LoRA modules, without fine-tuning the task model from scratch.
+
+```python
+    dataset_file = "/opt/local/datasets/alpaca_data_cleaned.json"
+    dataset = load_dataset("json", data_files=dataset_file)['train']
+    print(f"Loaded {len(dataset)} samples")
+
+    if max_learning_samples:
+        dataset = dataset.select(range(max_learning_samples))
+        print(f"Selected {len(dataset)} samples")
+```
+
+#### Gradient-free Learning
+
+For 6 LoRA modules, running a total of 100 steps, obtain the optimized lora_ratios. With this allocation ratio, it is possible to merge the LoRA modules to generate the final static task model or implement dynamic task routing and allocation on the server side.
+
+```bash
+python multi_loras/lorahub.py \
+    --max_inference_step 100 \
+    --max_learning_samples 64
+```
+
+#### LM-Evaluation-Harness
+
+| Metric | Value |
+| --- | --- |
+| ARC | 59.98  |
+| HellaSwag | 83.29 |
+| MMLU | 64.12 |
+| TruthfulQA | 42.15 |
+| Winogrande | 78.37 |
+| GSM8K | 37.68 |
+| Average | 60.93 |
+
+TODO:
+
+- How to determine if route learning has reached optimization. max_inference_step and ?
+- Implementation of dynamic routing
+- Selection of task sample data
 
 2023.12.04
 

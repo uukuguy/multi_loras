@@ -410,7 +410,7 @@ def get_args():
     parser.add_argument("--example_inputs", type=str, default=None)
     parser.add_argument("--example_outputs", type=str, default=None)
     parser.add_argument("--batch_size", type=int, default=4)
-    parser.add_argument("--max_inference_step", type=int, default=40)
+    parser.add_argument("--max_inference_step", type=int, default=100)
 
     parser.add_argument("--num_workers", type=int, default=1)
     parser.add_argument("--max_learning_samples", type=int, default=64)
