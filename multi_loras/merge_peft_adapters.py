@@ -41,14 +41,16 @@ def main():
     parser = argparse.ArgumentParser()
 
     parser.add_argument("--base_model_name_or_path", type=str)
-    parser.add_argument("--peft_model_path", type=str)
+    # parser.add_argument("--peft_model_path", type=str)
+    parser.add_argument("--lora_model_path", type=str)
     parser.add_argument("--merged_model_name_or_path", type=str, default=None)
     parser.add_argument("--push_to_hub", action="store_true", default=False)
 
     args = parser.parse_args()
 
     merge_peft_adapters(base_model_name_or_path=args.base_model_name_or_path, 
-                        peft_model_path=args.peft_model_path, 
+                        # peft_model_path=args.peft_model_path, 
+                        peft_model_path=args.lora_model_path, 
                         merged_model_name_or_path=args.merged_model_name_or_path,
                         push_to_hub=args.push_to_hub
                         )
