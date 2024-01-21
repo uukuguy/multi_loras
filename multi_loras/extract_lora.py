@@ -133,14 +133,19 @@ def do_extract_lora(args):
         residual = lora_tune.weight.data - lora_base.weight.data
         pbar.set_postfix({"layer": name_base.replace("base_model.model.", ""), "shape": residual.shape})
 
-        # SVD on residual
-        U, Vh = svd_distill(residual, rank=rank, clamp_quantile=clamp_quantile)
+        try:
+            assert lora_base.lora_A
+        except:
+            print("no lora_A here")
+        else:
+            # SVD on residual
+            U, Vh = svd_distill(residual, rank=rank, clamp_quantile=clamp_quantile)
 
-        assert lora_base.lora_A.default.weight.shape == Vh.shape, f"{lora_base=}"
-        assert lora_base.lora_B.default.weight.shape == U.shape, f"{lora_base=}"
+            assert lora_base.lora_A.default.weight.shape == Vh.shape, f"{lora_base=}"
+            assert lora_base.lora_B.default.weight.shape == U.shape, f"{lora_base=}"
 
-        lora_base.lora_A.default.weight.data = Vh.to(device=device, dtype=dtype)
-        lora_base.lora_B.default.weight.data = U.to(device=device, dtype=dtype)
+            lora_base.lora_A.default.weight.data = Vh.to(device=device, dtype=dtype)
+            lora_base.lora_B.default.weight.data = U.to(device=device, dtype=dtype)
 
     # Save the distilled model
     print(f"Saving peft model to {args.save_path} ...")

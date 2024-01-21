@@ -34,9 +34,17 @@ def merge_peft_adapters(base_model_name_or_path, peft_model_path, merged_model_n
         model.save_pretrained(merged_model_name_or_path)
         tokenizer.save_pretrained(merged_model_name_or_path)
         print(f"Model saved to {merged_model_name_or_path}")
-    
 
-def main():
+def do_merge_lora(args):
+    merge_peft_adapters(
+        base_model_name_or_path=args.base_model_name_or_path,
+        # peft_model_path=args.peft_model_path,
+        peft_model_path=args.lora_model_path,
+        merged_model_name_or_path=args.merged_model_name_or_path,
+        push_to_hub=args.push_to_hub
+    )
+
+def get_args():
     import argparse
     parser = argparse.ArgumentParser()
 
@@ -48,12 +56,11 @@ def main():
 
     args = parser.parse_args()
 
-    merge_peft_adapters(base_model_name_or_path=args.base_model_name_or_path, 
-                        # peft_model_path=args.peft_model_path, 
-                        peft_model_path=args.lora_model_path, 
-                        merged_model_name_or_path=args.merged_model_name_or_path,
-                        push_to_hub=args.push_to_hub
-                        )
+    return args
+
+def main():
+    args = get_args()
+    do_merge_lora(args)
 
 
 if __name__ == "__main__" :
