@@ -16,6 +16,16 @@ Tools:
 
 ### Mixture-of-Multi-LoRAs
 
+2024.01.23
+
+[speechless-zephyr-code-functionary-7b](https://huggingface.co/uukuguy/speechless-zephyr-code-functionary-7b)
+
+Extract LoRA modules from below models (all based Mistral-7B-v0.1), each LoRA module has its own unique skills. By using multi-loras, they can be combined together statically or dynamically to form a versatile new model.
+
+- HuggingFaceH4/zephyr-7b-beta (Uncensored Model)
+- meetkai/functionary-small-v2.2 (Execute functions/plugins)
+- uukuguy/speechless-code-mistral-7b-v1.0 (Enhance Coding)
+
 2024.01.05
 
 [speechless-mistral-moloras-7b](https://huggingface.co/uukuguy/speechless-mistral-moloras-7b)
