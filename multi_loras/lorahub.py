@@ -3,17 +3,24 @@ import torch
 from dataclasses import dataclass
 from torch.utils.data import DataLoader
 from transformers import default_data_collator
-import numpy
-import random
 import nevergrad as ng
-from peft.utils.save_and_load import set_peft_model_state_dict, get_peft_model_state_dict
+from peft.utils.save_and_load import (set_peft_model_state_dict, get_peft_model_state_dict)
 from peft import LoraConfig
 from functools import partial
 from typing import List, Dict, Sequence
-from transformers import AutoModelForCausalLM, AutoTokenizer, PreTrainedTokenizer
+from transformers import (AutoModelForCausalLM, AutoTokenizer, PreTrainedTokenizer)
 from datasets import load_dataset, Dataset
 
+if torch.cuda.is_available():
+    device = "cuda"
+else:
+    device = "cpu"
 
+try:
+    if torch.backends.mps.is_available():
+        device = "mps"
+except:  # noqa: E722
+    pass
 
 def default_get_loss(task_dataset, model, batch_size=None):
     """
@@ -29,9 +36,10 @@ def default_get_loss(task_dataset, model, batch_size=None):
     )
     train_loss = 0
     with torch.no_grad():
-        device = "cuda" if torch.cuda.is_available() else "cpu"
+        # device = "cuda" if torch.cuda.is_available() else "cpu"
         for batch in tqdm(task_dataloader, ncols=100, desc="Calculating loss"):
-            batch = {k: v.to(device) for k, v in batch.items()}
+            batch = {k: v.to(device)
+                     for k, v in batch.items()}
             with torch.no_grad():
                 outputs = model(**batch)
             loss = outputs.loss
@@ -41,6 +49,7 @@ def default_get_loss(task_dataset, model, batch_size=None):
     loss = float(loss) / len(task_dataloader)
     print(f"learning loss: {loss:.6f}")
     return loss
+
 
 def default_l1_regularization(weights):
     """
@@ -60,9 +69,7 @@ def get_final_weights(lora_ratios, cached_lora_modules):
                 final_state_dict[key] = lora_ratios[i] * lora_state_dict[key]
         else:
             for key in keys:
-                final_state_dict[key] = (
-                    final_state_dict[key] + lora_ratios[i] * lora_state_dict[key]
-                )
+                final_state_dict[key] = (final_state_dict[key] + lora_ratios[i] * lora_state_dict[key])
     return final_state_dict
 
 
@@ -88,7 +95,9 @@ def get_score(
     return metric_val
 
 
-def learn(peft_model, cached_lora_modules, task_dataset, max_inference_step: int = 40, batch_size=None, num_workers: int=1):
+def learn(
+    peft_model, cached_lora_modules, task_dataset, max_inference_step: int = 40, batch_size=None, num_workers: int = 1
+):
     print(f"Start learning with {len(task_dataset)} examples")
 
     number_of_loras = len(cached_lora_modules)
@@ -96,11 +105,13 @@ def learn(peft_model, cached_lora_modules, task_dataset, max_inference_step: int
         print("> No LoRA modules are provided. Please provide at least one LoRA module.")
         return None, None
 
-    get_score_partial = partial(get_score,
-                                peft_model=peft_model,
-                                cached_lora_modules=cached_lora_modules,
-                                task_dataset=task_dataset,
-                                batch_size=batch_size)
+    get_score_partial = partial(
+        get_score,
+        peft_model=peft_model,
+        cached_lora_modules=cached_lora_modules,
+        task_dataset=task_dataset,
+        batch_size=batch_size
+    )
     # set up the limit of the weights
     instrum = ng.p.Array(
         init=[0] * number_of_loras,
@@ -117,15 +128,15 @@ def learn(peft_model, cached_lora_modules, task_dataset, max_inference_step: int
         # use the line just below, with ProcessPoolExecutor instead (unless your
         # code is I/O bound rather than CPU bound):
         with futures.ThreadPoolExecutor(max_workers=optimizer.num_workers) as executor:
-        #with futures.ProcessPoolExecutor(max_workers=optimizer.num_workers) as executor:
-        # With batch_mode=True it will ask the optimizer for num_workers points to evaluate, run the evaluations, then update the optimizer with the num_workers function outputs, and repeat until the budget is all spent. Since no executor is provided, the evaluations will be sequential. num_workers > 1 with no executor is therefore suboptimal but nonetheless useful for evaluation purpose (i.e. we simulate parallelism but have no actual parallelism). batch_mode=False (steady state mode) will ask for a new evaluation whenever a worker is ready.
+            #with futures.ProcessPoolExecutor(max_workers=optimizer.num_workers) as executor:
+            # With batch_mode=True it will ask the optimizer for num_workers points to evaluate, run the evaluations, then update the optimizer with the num_workers function outputs, and repeat until the budget is all spent. Since no executor is provided, the evaluations will be sequential. num_workers > 1 with no executor is therefore suboptimal but nonetheless useful for evaluation purpose (i.e. we simulate parallelism but have no actual parallelism). batch_mode=False (steady state mode) will ask for a new evaluation whenever a worker is ready.
             recommendation = optimizer.minimize(get_score_partial, executor=executor, batch_mode=False)
     else:
         optimizer = ng.optimizers.NGOpt(parametrization=instrum, budget=max_inference_step)
         recommendation = optimizer.minimize(get_score_partial, verbosity=1)
 
     print(f"{type(recommendation)=}, {recommendation=}")
-    lora_ratios=recommendation.value
+    lora_ratios = recommendation.value
     task_lora = get_final_weights(lora_ratios, cached_lora_modules)
 
     # # set the final weights
@@ -134,6 +145,7 @@ def learn(peft_model, cached_lora_modules, task_dataset, max_inference_step: int
     # return lora_ratios, task_model
 
     return lora_ratios, task_lora
+
 
 def preloaing_lora_modules(base_model, lora_module_list: List[str]):
     """load base model and lora modules from huggingface model hub
@@ -150,7 +162,9 @@ def preloaing_lora_modules(base_model, lora_module_list: List[str]):
     for peft_model_id in tqdm(lora_module_list, ncols=100, desc="Loading LoRA modules"):
         print("> Loading {} ...".format(peft_model_id))
         cur_peft_model = PeftModel.from_pretrained(base_model, peft_model_id)
-        cached_lora_modules[peft_model_id] = copy.deepcopy(get_peft_model_state_dict(cur_peft_model))
+        lora_module = copy.deepcopy(get_peft_model_state_dict(cur_peft_model))
+        # lora_module = {k: v.to(device) for k, v in lora_module.items()}
+        cached_lora_modules[peft_model_id] = lora_module
 
         if first_dict is None:
             first_dict = cached_lora_modules[peft_model_id]
@@ -160,17 +174,18 @@ def preloaing_lora_modules(base_model, lora_module_list: List[str]):
             for key in first_dict.keys():
                 assert first_dict[key].shape == cached_lora_modules[peft_model_id][key].shape
         except:
-            raise Exception(f'LoRA Modules {peft_model_id} cannot be merged since it has a different arch (e.g., rank).')
+            raise Exception(
+                f'LoRA Modules {peft_model_id} cannot be merged since it has a different arch (e.g., rank).'
+            )
 
     default_peft_model_id = lora_module_list[0]
     peft_model = PeftModel.from_pretrained(base_model, default_peft_model_id)
 
-    device = "cuda" if torch.cuda.is_available() else "cpu"
+    # device = "cuda" if torch.cuda.is_available() else "cpu"
     peft_model = peft_model.to(device)
     peft_model.eval()
 
     return peft_model, cached_lora_modules
-
 
 
 import copy
@@ -181,7 +196,8 @@ from transformers import AutoModelForSeq2SeqLM
 from transformers import AutoTokenizer
 from datasets import Dataset
 
-def format_alpaca_data(instruction: str,  response: str, input: str=None, system_prompt: str=None):
+
+def format_alpaca_data(instruction: str, response: str, input: str = None, system_prompt: str = None):
     if system_prompt is None:
         if input:
             system_prompt = "Below is an instruction that describes a task, paired with an input that provides further context. Write a response that appropriately completes the request.\n\n"
@@ -189,7 +205,9 @@ def format_alpaca_data(instruction: str,  response: str, input: str=None, system
             system_prompt = "Below is an instruction that describes a task.\nWrite a response that appropriately completes the request.\n\n"
 
     if input:
-        human_input = "### Instruction:\n{instruction}\n\n### Input:\n{input}\n\n### Response: ".format(instruction=instruction, input=input)
+        human_input = "### Instruction:\n{instruction}\n\n### Input:\n{input}\n\n### Response: ".format(
+            instruction=instruction, input=input
+        )
     else:
         human_input = "### Instruction:\n{instruction}\n\n### Response:".format(instruction=instruction)
 
@@ -200,13 +218,21 @@ def format_alpaca_data(instruction: str,  response: str, input: str=None, system
 
     return source, target
 
-IGNORE_INDEX=-100
+
+IGNORE_INDEX = -100
 from torch.nn.utils.rnn import pad_sequence
-def tokenize_and_pad_instruction_response_pairs(instructions: List, responses: List, inputs: List, model_max_len, tokenizer, prompt_type="alpaca"):
-    print(f"Call tokenize_and_pad_instruction_response_pairs for {len(instructions)} instances, {len(responses)} responses, {len(inputs)} inputs")
+
+
+def tokenize_and_pad_instruction_response_pairs(
+    instructions: List, responses: List, inputs: List, model_max_len, tokenizer, prompt_type="alpaca"
+):
+    print(
+        f"Call tokenize_and_pad_instruction_response_pairs for {len(instructions)} instances, {len(responses)} responses, {len(inputs)} inputs"
+    )
     input_ids = []
     labels = []
-    for idx, (instruction, response, input) in enumerate(tqdm(zip(instructions, responses, inputs), ncols=100, desc="Tokenizing")):
+    for idx, (instruction, response,
+              input) in enumerate(tqdm(zip(instructions, responses, inputs), ncols=100, desc="Tokenizing")):
         if prompt_type == "alpaca":
             source, target = format_alpaca_data(instruction=instruction, response=response, input=input)
         else:
@@ -244,7 +270,7 @@ def tokenize_and_pad_instruction_response_pairs(instructions: List, responses: L
     data_dict = {
         'input_ids': input_ids,
         'labels': labels,
-        'attention_mask':input_ids.ne(tokenizer.pad_token_id),
+        'attention_mask': input_ids.ne(tokenizer.pad_token_id),
     }
     return data_dict
 
@@ -286,10 +312,10 @@ def load_task_dataset(tokenizer, max_learning_samples=None, model_max_len=2048, 
 
     instructions = dataset['instruction']
     responses = dataset['output']
-    df = [
-        {"instruction": instructions[i], "response": responses[i]}
-        for i in range(len(dataset))
-    ]
+    df = [{
+        "instruction": instructions[i],
+        "response": responses[i]
+    } for i in range(len(dataset))]
     dataset = Dataset.from_pandas(pd.DataFrame(df))
     # preprocess_func_with_tokenizer = partial(preprocess_function, tokenizer=tokenizer)
     # tokenized_dataset = dataset.map(
@@ -309,6 +335,7 @@ def load_task_dataset(tokenizer, max_learning_samples=None, model_max_len=2048, 
     print(f"tokenized_dataset: {len(tokenized_dataset)} samples.")
 
     return tokenized_dataset
+
 
 def fix_special_tokens(tokenizer, model_name_or_path):
     print(f"---------- Original tokens----------")
@@ -333,13 +360,14 @@ def fix_special_tokens(tokenizer, model_name_or_path):
         #     tokenizer.unk_token_id = 0
         #     tokenizer.unk_token = "<unk>"
         if tokenizer.pad_token_id is None:
-            tokenizer.pad_token_id = 0 # tokenizer.eos_token_id
-            tokenizer.pad_token = tokenizer._convert_id_to_token(tokenizer.pad_token_id) #tokenizer.eos_token
+            tokenizer.pad_token_id = 0  # tokenizer.eos_token_id
+            tokenizer.pad_token = tokenizer._convert_id_to_token(tokenizer.pad_token_id)  #tokenizer.eos_token
     print(f"---------- Fixed tokens ----------")
     print(f"{tokenizer.pad_token=},{tokenizer.pad_token_id=}")
     # print(f"{tokenizer.unk_token=},{tokenizer.unk_token_id=}")
     print(f"{tokenizer.bos_token=},{tokenizer.bos_token_id=}")
     print(f"{tokenizer.eos_token=},{tokenizer.eos_token_id=}")
+
 
 def do_learn(args):
     # Tokenizer
@@ -385,25 +413,37 @@ def do_learn(args):
     # tokenizer.save_pretrained(args.output_dir)
     # print(f"Saved the model to {args.output_dir}")
 
-multi_loras_dir = "/opt/local/llm_models/huggingface.co/mixture-of-multi-loras/speechless-multi-loras-r64"
+
 # type(recommendation)=<class 'nevergrad.parametrization.data.Array'>, recommendation=Array{(6,),Cl([-1.5 -1.5 -1.5 -1.5 -1.5 -1.5],[1.5 1.5 1.5 1.5 1.5 1.5],b)}[sigma=[0.5 0.5 0.5 0.5 0.5 0.5]]:[-8.96515221e-07  2.34189008e-07 -9.26112899e-07 -7.87191754e-07 -1.26186896e-09 -2.01161302e-07]
 # lora_ratios=array([-8.96515221e-07,  2.34189008e-07, -9.26112899e-07, -7.87191754e-07, -1.26186896e-09, -2.01161302e-07])
+
+# multi_loras_dir = "/opt/local/llm_models/huggingface.co/mixture-of-multi-loras/speechless-multi-loras-r64"
+# lora_module_list = [
+#     f"{multi_loras_dir}/Intel/neural-chat-7b-v3-1-lora",
+#     f"{multi_loras_dir}/migtissera/SynthIA-7B-v1.3-lora",
+#     # f"{multi_loras_dir}/HuggingFaceH4/zephyr-7b-alpha-lora",
+#     f"{multi_loras_dir}/jondurbin/airoboros-m-7b-3.1.2-lora",
+#     f"{multi_loras_dir}/bhenrym14/mistral-7b-platypus-fp16-lora",
+#     f"{multi_loras_dir}/teknium/CollectiveCognition-v1.1-Mistral-7B-lora",
+#     f"{multi_loras_dir}/uukuguy/speechless-mistral-dolphin-orca-platypus-samantha-7b-lora",
+# ]
+
+multi_loras_dir = "/opt/local/llm_models/huggingface.co/mixture-of-multi-loras"
 lora_module_list = [
-    f"{multi_loras_dir}/Intel/neural-chat-7b-v3-1-lora",
-    f"{multi_loras_dir}/migtissera/SynthIA-7B-v1.3-lora",
-    # f"{multi_loras_dir}/HuggingFaceH4/zephyr-7b-alpha-lora",
-    f"{multi_loras_dir}/jondurbin/airoboros-m-7b-3.1.2-lora",
-    f"{multi_loras_dir}/bhenrym14/mistral-7b-platypus-fp16-lora",
-    f"{multi_loras_dir}/teknium/CollectiveCognition-v1.1-Mistral-7B-lora",
-    f"{multi_loras_dir}/uukuguy/speechless-mistral-dolphin-orca-platypus-samantha-7b-lora",
+    f"{multi_loras_dir}/zephyr-7b-beta-4bit-r64-lora",
+    f"{multi_loras_dir}/speechless-code-mistral-7b-v1.0-4bit-r64-lora",
+    f"{multi_loras_dir}/functionary-small-v2.2-4bit-r64-lora",
 ]
+
 
 def get_args():
     import argparse
     parser = argparse.ArgumentParser()
 
     parser.add_argument("--do_learn", action="store_true")
-    parser.add_argument("--model_name_or_path", type=str, default="/opt/local/llm_models/huggingface.co/mistralai/Mistral-7B-v0.1")
+    parser.add_argument(
+        "--model_name_or_path", type=str, default="/opt/local/llm_models/huggingface.co/mistralai/Mistral-7B-v0.1"
+    )
     parser.add_argument("--lora_module_list", nargs="+", default=lora_module_list)
     parser.add_argument("--output_dir", type=str, default="./output")
 
@@ -427,6 +467,7 @@ def main():
     # model, tokenizer, cache = load_base_model_and_lora_modules(lora_module_list, model_name_or_path)
     # # process dataset
     # dataset = load_dataset(example_inputs, example_outputs, tokenizer)
+
 
 if __name__ == "__main__":
     main()
