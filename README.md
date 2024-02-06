@@ -207,6 +207,9 @@ python -m multi_loras \
 
 ## References
 
+- HilixNet-LMoE(LoRA based Mixture of Experts version of the [HelixNet](https://huggingface.co/migtissera/HelixNet)) uses the extract-lora function of multi-loras to complete their LoRAs extraction task in the LMoE architecture.
+  [HelixNet-LMoE-Actor](https://huggingface.co/rhysjones/HelixNet-LMoE-Actor) [HelixNet-LMoE-Critic](https://huggingface.co/rhysjones/HelixNet-LMoE-Critic) [HelixNet-LMoE-Regenerator](https://huggingface.co/rhysjones/HelixNet-LMoE-Regenerator)
+
 - Gradio GUI for Kohya’s Stable Diffusion Trainer
 
 [bmaltais/kohya_ss](https://github.com/bmaltais/kohya_ss)
